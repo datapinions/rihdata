@@ -1,8 +1,24 @@
+# Copyright (c) 2023 - Darren Erik Vengroff
+
 PYTHON = python3.9
 LOGLEVEL = WARNING
 
+# The year of U.S. Census ACS data that drives all of
+# our analysis.
 YEAR := 2020
 
+# We will do our analysis on the top N CBASs. When testing
+# and debugging, it is sometimes useful to override this
+# with a smaller value on the command line. For example,
+#
+#    gmake N=3
+#
+# will only work with the three largest CBSAs.
+N := 50
+
+# The various directories where we will store intermediate
+# and final results. Most are mentioned in .gitignore so
+# their contents don't end up in the repository.
 BUILD_DIR := ./build-$(YEAR)
 WORKING_DIR := $(BUILD_DIR)/working
 DATA_DIR := ./data-$(YEAR)
@@ -12,24 +28,45 @@ PRICE_PLOT_DIR := $(PLOT_DIR)/price-income
 SHAP_PLOT_DIR := $(PLOT_DIR)/shap
 
 GROUP_HISPANIC_LATINO = --group-hispanic-latino
-N := 50
 
+# The goal here is to construct a variable listing the top N
+# CBSAs by population in the year specified by $(YEAR). But we
+# don't want to download the data and do the analysis every time
+# we invoke this Makefile. Instead, we want to cache the results
+# in a file and read them from the file whenever possible. To
+# accomplish this, we use another small makefile to ensure that
+# the file is there. If it is, then the recursive make does
+# nothing and we quickly have access to the contents of the file
+# that tells us to the top N CBSAs. This variable then flows
+# down through other variables in this Makefile that describe
+# collections of files that should be generated for the top N
+# CBSAs.
 TOP_N_LIST_FILE := $(WORKING_DIR)/top_$(N)_$(YEAR)_cbsa.txt
-RANKED_FILE :=  $(PARAMS_DIR)/ranked_$(N)_$(YEAR)_cbsa.csv
-
 TOP_N := $(shell $(MAKE) -s -f make_list.mk PYTHON=$(PYTHON) TOP_N_LIST_FILE=$(TOP_N_LIST_FILE) N=$(N) YEAR=$(YEAR); cat $(TOP_N_LIST_FILE))
 
+# Paths for data for each of the top N CBSAs.
 TOP_N_DATA := $(patsubst %,$(DATA_DIR)/%,$(TOP_N))
+
+# These are additional files and directories derived from the list of top
+# N data paths.
+#
+# Pattern-matching rules that come later will be used to generate
+# the individual files listed in these variables.
 TOP_N_PARAMS := $(TOP_N_DATA:$(DATA_DIR)/%.geojson=$(PARAMS_DIR)/%.params.yaml)
 TOP_N_LINREG := $(TOP_N_DATA:$(DATA_DIR)/%.geojson=$(PARAMS_DIR)/%.linreg.yaml)
 TOP_N_PRICE_PLOT_DIRS := $(TOP_N_DATA:$(DATA_DIR)/%.geojson=$(PRICE_PLOT_DIR)/%/price-income.png)
 TOP_N_SHAP_PLOT_DIRS := $(TOP_N_DATA:$(DATA_DIR)/%.geojson=$(SHAP_PLOT_DIR)/%)
 
-.PHONY: all plots shap_plots price_plots data params linreg clean clean_plots ranked_file
+# An output file that ranks the performance of the model
+# on the top N CBSAs. This is the top level output that
+# our default targer `all` builds along with plots.
+RANKED_FILE :=  $(PARAMS_DIR)/ranked_$(N)_$(YEAR)_cbsa.csv
 
-all: ranked_file plots
+.PHONY: all all_plots shap_plots price_plots data params linreg clean clean_plots ranked_file
 
-plots: shap_plots price_plots
+all: ranked_file all_plots
+
+all_plots: shap_plots price_plots
 
 shap_plots: $(TOP_N_SHAP_PLOT_DIRS)
 
@@ -50,30 +87,46 @@ clean_plots:
 	rm -rf $(PLOT_DIR)
 
 # Build data files, one for each of the top N CBSAs.
-
+# Note that we use the &: rule syntax here. This was
+# introduced in GNU Make 4.3. If you are using an older
+# version, it will not properly recognize the intent
+# of this rule.
 $(TOP_N_DATA) &:
 	mkdir -p $(DATA_DIR)
 	$(PYTHON) -m rih.datagen -c $(TOP_N) -v $(YEAR) -o $(DATA_DIR)
 
-# How to go from a CBSA file to a parameter file.
-
+# How to go from a data file for a single CBSA to a parameter file.
+# for the same CBSA.
 $(PARAMS_DIR)/%.params.yaml: $(DATA_DIR)/%.geojson
 	$(PYTHON) -m rih.treegress --log $(LOGLEVEL) -v $(YEAR) $(GROUP_HISPANIC_LATINO) -o $@ $<
 
+# How to build the file that ranks the CBSAs by score. This is a
+# summary file that is useful for undestanding which CBSAs fit
+# well and which did not fit as well. It requires
+# a parameter file from each of the top N CBSAs. It also requires
+# a linear regression results file for each of them, since it puts
+# these scores in the output file also.
 $(RANKED_FILE): $(TOP_N_PARAMS) $(TOP_N_LINREG)
 	mkdir -p $(@D)
 	$(PYTHON) -m rih.rankscore -o $@ $(TOP_N_PARAMS)
 
-# Linear regression for comparison.
+# This is the rule to run a linear regression for a single CBSA.
+# It reguires the data from that CBSA..
 $(PARAMS_DIR)/%.linreg.yaml: $(DATA_DIR)/%.geojson
 	$(PYTHON) -m rih.linreg --log $(LOGLEVEL) -v $(YEAR) $(GROUP_HISPANIC_LATINO) -o $@ $<
 
-# Price plot
+# Produce a plot of price vs. income for a single CBSA. All of
+# the block groups in that CBSA are considered.
 $(PRICE_PLOT_DIR)/%/price-income.png: $(DATA_DIR)/%.geojson
 	mkdir -p ${@D}
 	$(PYTHON) -m rih.priceplot --log $(LOGLEVEL) -v $(YEAR) -o $@ $<
 
-# Shap plot
+# Produce a series of plots for the influence of each of several
+# features on the output of the model for a single CBSA. All of
+# the block groups in that CBSA are considered. Since the shap analysis
+# is the slow part of this, and it produces values for all features at
+# the same time, we organize the code so that one executable produces
+# plots for all features.
 $(SHAP_PLOT_DIR)/%: $(PARAMS_DIR)/%.params.yaml $(DATA_DIR)/%.geojson
 	mkdir -p $@
 	$(PYTHON) -m rih.shapplot --log $(LOGLEVEL) --background -v $(YEAR) $(GROUP_HISPANIC_LATINO) -p $(PARAMS_DIR)/$*.params.yaml -o $@ $(DATA_DIR)/$*.geojson
