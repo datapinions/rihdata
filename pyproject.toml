@@ -1,0 +1,29 @@
+[tool.poetry]
+name = "raceincomehousing"
+version = "0.1.0"
+description = ""
+authors = ["vengroff <vengroff@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+# The upper bound here is for the sake of tensorflow.
+python = ">=3.9,<3.11"
+censusdis = "^0.15.0"
+xgboost = "^1.7.3"
+matplotlib = "^3.6.3"
+scikit-learn = "^1.2.0"
+plotly = "^5.12.0"
+autograd = "^1.5"
+bayesian-optimization = "^1.4.2"
+treeplot = "^0.1.16"
+shap = "^0.41.0"
+# This pin is a workaround for the fact that SHAP 0.41.0 does not work
+# with numpy 1.24.0 or newer. When there is a new release of shap that
+# works with newer numpy versions we can use it an eliminate this pin.
+numpy = "1.23.2"
+PyYAML = "^6.0"
+tensorflow = "^2.13.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
