@@ -74,6 +74,6 @@ $(PRICE_PLOT_DIR)/%/price-income.png: $(DATA_DIR)/%.geojson
 	$(PYTHON) -m rih.priceplot --log $(LOGLEVEL) -v $(YEAR) -o $@ $<
 
 # Shap plot
-$(SHAP_PLOT_DIR)/%: $(DATA_DIR)/%.params.yaml $(DATA_DIR)/%.geojson
+$(SHAP_PLOT_DIR)/%: $(PARAMS_DIR)/%.params.yaml $(DATA_DIR)/%.geojson
 	mkdir -p $@
-	$(PYTHON) -m rih.shapplot --log $(LOGLEVEL) --background -v $(YEAR) $(GROUP_HISPANIC_LATINO) -p $(DATA_DIR)/$*.params.yaml -o $@ $(DATA_DIR)/$*.geojson
+	$(PYTHON) -m rih.shapplot --log $(LOGLEVEL) --background -v $(YEAR) $(GROUP_HISPANIC_LATINO) -p $(PARAMS_DIR)/$*.params.yaml -o $@ $(DATA_DIR)/$*.geojson
