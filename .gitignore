@@ -3,6 +3,7 @@
 # Specific to this project layout:
 build-*/
 plots-*/
+data-*/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
