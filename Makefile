@@ -47,8 +47,9 @@ TOP_N := $(shell $(MAKE) -s -f make_list.mk PYTHON=$(PYTHON) TOP_N_LIST_FILE=$(T
 # Paths for data for each of the top N CBSAs.
 TOP_N_DATA := $(patsubst %,$(DATA_DIR)/%,$(TOP_N))
 
-# Summary statistics about the data for each CBSA
-TOP_N_SUMMARY_STATS = $(TOP_N_DATA:%.geojson=%-summary.csv)
+# Summary statistics about the data for each CBSA and overall
+TOP_N_SUMMARY_STATS := $(TOP_N_DATA:%.geojson=%-summary.csv)
+OVERALL_SUMMARY := $(DATA_DIR)/overall-summary.csv
 
 # These are additional files and directories derived from the list of top
 # N data paths.
@@ -81,7 +82,7 @@ linreg: $(TOP_N_LINREG)
 
 data: $(TOP_N_DATA)
 
-summary: $(TOP_N_SUMMARY_STATS)
+summary: $(TOP_N_SUMMARY_STATS) $(OVERALL_SUMMARY)
 
 ranked_file: $(RANKED_FILE)
 
@@ -103,6 +104,9 @@ $(TOP_N_DATA) &:
 # How to generate a file of summary stats for a data file.
 %-summary.csv: %.geojson
 	$(PYTHON) -m rih.summary --log $(LOGLEVEL) -o $@ $<
+
+$(OVERALL_SUMMARY): $(TOP_N_DATA)
+	$(PYTHON) -m rih.summary --log $(LOGLEVEL) -o $@ $(TOP_N_DATA)
 
 # How to go from a data file for a single CBSA to a parameter file.
 # for the same CBSA.
