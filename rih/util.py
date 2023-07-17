@@ -351,8 +351,8 @@ def xyw(gdf_cbsa_bg, year, group_lh_together: bool):
     return X, w, y
 
 
-MAX_INCOME = 250_000
-MAX_PRICE = 2_000_000
+MAX_INCOME = 250_001
+MAX_PRICE = 2_000_001
 
 
 def read_data(filename: str, drop_outliers: bool = True, **kwargs) -> gpd.GeoDataFrame:

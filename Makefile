@@ -47,6 +47,9 @@ TOP_N := $(shell $(MAKE) -s -f make_list.mk PYTHON=$(PYTHON) TOP_N_LIST_FILE=$(T
 # Paths for data for each of the top N CBSAs.
 TOP_N_DATA := $(patsubst %,$(DATA_DIR)/%,$(TOP_N))
 
+# Summary statistics about the data for each CBSA
+TOP_N_SUMMARY_STATS = $(TOP_N_DATA:%.geojson=%-summary.csv)
+
 # These are additional files and directories derived from the list of top
 # N data paths.
 #
@@ -62,9 +65,9 @@ TOP_N_SHAP_PLOT_DIRS := $(TOP_N_DATA:$(DATA_DIR)/%.geojson=$(SHAP_PLOT_DIR)/%)
 # our default targer `all` builds along with plots.
 RANKED_FILE :=  $(PARAMS_DIR)/ranked_$(N)_$(YEAR)_cbsa.csv
 
-.PHONY: all all_plots shap_plots price_plots data params linreg clean clean_plots ranked_file
+.PHONY: all all_plots shap_plots price_plots data summary params linreg clean clean_plots ranked_file
 
-all: ranked_file all_plots
+all: summary ranked_file all_plots
 
 all_plots: shap_plots price_plots
 
@@ -77,6 +80,8 @@ params: $(TOP_N_PARAMS)
 linreg: $(TOP_N_LINREG)
 
 data: $(TOP_N_DATA)
+
+summary: $(TOP_N_SUMMARY_STATS)
 
 ranked_file: $(RANKED_FILE)
 
@@ -94,6 +99,10 @@ clean_plots:
 $(TOP_N_DATA) &:
 	mkdir -p $(DATA_DIR)
 	$(PYTHON) -m rih.datagen -c $(TOP_N) -v $(YEAR) -o $(DATA_DIR)
+
+# How to generate a file of summary stats for a data file.
+%-summary.csv: %.geojson
+	$(PYTHON) -m rih.summary --log $(LOGLEVEL) -o $@ $<
 
 # How to go from a data file for a single CBSA to a parameter file.
 # for the same CBSA.
