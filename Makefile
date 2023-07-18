@@ -25,6 +25,7 @@ DATA_DIR := ./data-$(YEAR)
 PARAMS_DIR := $(BUILD_DIR)/params
 PLOT_DIR := ./plots-$(YEAR)
 PRICE_PLOT_DIR := $(PLOT_DIR)/price-income
+PRICE_FEATURE_PLOT_DIR := $(PLOT_DIR)/price-feature
 SHAP_PLOT_DIR := $(PLOT_DIR)/shap
 
 GROUP_HISPANIC_LATINO = --group-hispanic-latino
@@ -59,6 +60,7 @@ OVERALL_SUMMARY := $(DATA_DIR)/overall-summary.csv
 TOP_N_PARAMS := $(TOP_N_DATA:$(DATA_DIR)/%.geojson=$(PARAMS_DIR)/%.params.yaml)
 TOP_N_LINREG := $(TOP_N_DATA:$(DATA_DIR)/%.geojson=$(PARAMS_DIR)/%.linreg.yaml)
 TOP_N_PRICE_PLOT_DIRS := $(TOP_N_DATA:$(DATA_DIR)/%.geojson=$(PRICE_PLOT_DIR)/%/price-income.png)
+TOP_N_PRICE_FEATURE_PLOT_DIRS := $(TOP_N_DATA:$(DATA_DIR)/%.geojson=$(PRICE_FEATURE_PLOT_DIR)/%)
 TOP_N_SHAP_PLOT_DIRS := $(TOP_N_DATA:$(DATA_DIR)/%.geojson=$(SHAP_PLOT_DIR)/%)
 
 # An output file that ranks the performance of the model
@@ -70,11 +72,13 @@ RANKED_FILE :=  $(PARAMS_DIR)/ranked_$(N)_$(YEAR)_cbsa.csv
 
 all: summary ranked_file all_plots
 
-all_plots: shap_plots price_plots
+all_plots: shap_plots price_plots price_feature_plots
 
 shap_plots: $(TOP_N_SHAP_PLOT_DIRS)
 
 price_plots: $(TOP_N_PRICE_PLOT_DIRS)
+
+price_feature_plots: $(TOP_N_PRICE_FEATURE_PLOT_DIRS)
 
 params: $(TOP_N_PARAMS)
 
@@ -143,3 +147,9 @@ $(PRICE_PLOT_DIR)/%/price-income.png: $(DATA_DIR)/%.geojson
 $(SHAP_PLOT_DIR)/%: $(PARAMS_DIR)/%.params.yaml $(DATA_DIR)/%.geojson
 	mkdir -p $@
 	$(PYTHON) -m rih.shapplot --log $(LOGLEVEL) --background -v $(YEAR) $(GROUP_HISPANIC_LATINO) -p $(PARAMS_DIR)/$*.params.yaml -o $@ $(DATA_DIR)/$*.geojson
+
+# Produce a series of scatter plots of price vs. the various race and
+# ethnicity features.
+$(PRICE_FEATURE_PLOT_DIR)/%: $(DATA_DIR)/%.geojson
+	mkdir -p $@
+	$(PYTHON) -m rih.featureplot --log $(LOGLEVEL) -v $(YEAR) $(GROUP_HISPANIC_LATINO) -o $@ $(DATA_DIR)/$*.geojson
