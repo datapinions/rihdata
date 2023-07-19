@@ -31,7 +31,7 @@ class Downloader:
 
     download_variables: List[str] = field(
         default_factory=lambda: [
-            'NAME',
+            "NAME",
             util.VARIABLE_MEDIAN_VALUE,
             util.VARIABLE_MEDIAN_INCOME,
             util.VARIABLE_TOTAL_POP,
@@ -113,12 +113,16 @@ class Downloader:
 
         logger.info("Joining CBSAs and block group data.")
 
-        gdf_bg_by_cbsa = cem.sjoin_mostly_contains(
-            gdf_large_geos=gdf_top_cbsas,
-            gdf_small_geos=gdf_bg_data,
-            large_suffix='CBSA',
-            small_suffix='BG',
-        ).drop('index_CBSA', axis='columns').reset_index(drop=True)
+        gdf_bg_by_cbsa = (
+            cem.sjoin_mostly_contains(
+                gdf_large_geos=gdf_top_cbsas,
+                gdf_small_geos=gdf_bg_data,
+                large_suffix="CBSA",
+                small_suffix="BG",
+            )
+            .drop("index_CBSA", axis="columns")
+            .reset_index(drop=True)
+        )
 
         return gdf_bg_by_cbsa
 
@@ -127,20 +131,18 @@ def main():
     parser = ArgumentParser()
 
     parser.add_argument(
-        '--log',
-        choices=['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'],
+        "--log",
+        choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
         help="Logging level.",
-        default='WARNING'
+        default="WARNING",
     )
     parser.add_argument(
-        '-c',
-        '--cbsa',
-        nargs="+",
-        type=str,
-        help="The CBSAs to get data for."
+        "-c", "--cbsa", nargs="+", type=str, help="The CBSAs to get data for."
     )
-    parser.add_argument('-v', '--vintage', required=True, type=int, help="Year to get data.")
-    parser.add_argument('-o', '--output', required=True, type=str, help="Output file.")
+    parser.add_argument(
+        "-v", "--vintage", required=True, type=int, help="Year to get data."
+    )
+    parser.add_argument("-o", "--output", required=True, type=str, help="Output file.")
 
     args = parser.parse_args()
 
@@ -151,29 +153,39 @@ def main():
 
     output_dir = Path(args.output)
 
-    downloader = Downloader(dataset=ACS5, vintage=args.vintage, top_n_cbsas=[arg.split('/')[1].split('.')[0] for arg in args.cbsa])
+    downloader = Downloader(
+        dataset=ACS5,
+        vintage=args.vintage,
+        top_n_cbsas=[arg.split("/")[1].split(".")[0] for arg in args.cbsa],
+    )
 
     gdf_data = downloader.bg_data
 
     # Add in fractional values.
-    for leaf in ced.variables.group_leaves(dataset=ACS5, year=args.vintage, name=util.GROUP_RACE_ETHNICITY) + [
+    for leaf in ced.variables.group_leaves(
+        dataset=ACS5, year=args.vintage, name=util.GROUP_RACE_ETHNICITY
+    ) + [
         util.VARIABLE_TOTAL_POP,
-        util.VARIABLE_BLACK_ALONE, util.VARIABLE_WHITE_ALONE,
-        util.VARIABLE_NH_TOTAL, util.VARIABLE_NH_BLACK, util.VARIABLE_NH_WHITE,
-        util.VARIABLE_H_TOTAL, util.VARIABLE_H_BLACK, util.VARIABLE_H_WHITE,
+        util.VARIABLE_BLACK_ALONE,
+        util.VARIABLE_WHITE_ALONE,
+        util.VARIABLE_NH_TOTAL,
+        util.VARIABLE_NH_BLACK,
+        util.VARIABLE_NH_WHITE,
+        util.VARIABLE_H_TOTAL,
+        util.VARIABLE_H_BLACK,
+        util.VARIABLE_H_WHITE,
     ]:
-        gdf_data[f'frac_{leaf}'] = gdf_data[leaf] / gdf_data[util.VARIABLE_TOTAL_POP]
+        gdf_data[f"frac_{leaf}"] = gdf_data[leaf] / gdf_data[util.VARIABLE_TOTAL_POP]
 
     for file_path in args.cbsa:
         output = output_dir / file_path
         output.parent.mkdir(exist_ok=True)
         logger.info(f"Writing to output file {output}")
         gdf_data[
-            gdf_data[
-                'METROPOLITAN_STATISTICAL_AREA_MICROPOLITAN_STATISTICAL_AREA'
-            ] == output.stem
+            gdf_data["METROPOLITAN_STATISTICAL_AREA_MICROPOLITAN_STATISTICAL_AREA"]
+            == output.stem
         ].to_file(output)
-        logger.info(f"Writing complete.")
+        logger.info("Writing complete.")
 
 
 if __name__ == "__main__":

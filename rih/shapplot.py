@@ -1,10 +1,9 @@
-
 import logging
+from argparse import BooleanOptionalAction
 from pathlib import Path
 from typing import Dict, Any
 
 import censusdis.data as ced
-import geopandas as gpd
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -13,7 +12,6 @@ import xgboost
 import yaml
 from censusdis.datasets import ACS5
 from matplotlib.ticker import FuncFormatter, PercentFormatter
-from argparse import BooleanOptionalAction
 
 import rih.util as util
 from rih.loggingargparser import LoggingArgumentParser
@@ -23,14 +21,16 @@ logger = logging.getLogger(__name__)
 
 
 def shap_force(
-        xgb_params: Dict[str, Any],
-        gdf_cbsa_bg: pd.DataFrame,
-        year: int,
-        group_lh_together: bool,
-        random_state: int
+    xgb_params: Dict[str, Any],
+    gdf_cbsa_bg: pd.DataFrame,
+    year: int,
+    group_lh_together: bool,
+    random_state: int,
 ):
     # Sample randomly before training.
-    gdf_cbsa_bg = gdf_cbsa_bg.sample(frac=0.8, random_state=random_state).reset_index(names="original_index")
+    gdf_cbsa_bg = gdf_cbsa_bg.sample(frac=0.8, random_state=random_state).reset_index(
+        names="original_index"
+    )
     np.random.seed(random_state)
 
     X, w, y = xyw(gdf_cbsa_bg, year, group_lh_together)
@@ -38,7 +38,7 @@ def shap_force(
     logger.info(f"Instantiating XGB with {xgb_params}.")
 
     # Use the optimal hyperparams, but fit on all the data.
-    xgb = xgboost.XGBRegressor(eval_metric='rmsle', **xgb_params)
+    xgb = xgboost.XGBRegressor(eval_metric="rmsle", **xgb_params)
     xgb = xgb.fit(X=X, y=y, sample_weight=w)
 
     y_hat = xgb.predict(X=X)
@@ -57,8 +57,11 @@ def shap_force(
 
     # Should be zero.
     check = df_forces.sum(axis="columns") + expected_value - y
+    assert np.abs(check) <= 1e-9
 
-    df_forces = df_forces.rename({force_col: f"SHAP_{force_col}" for force_col in X.columns}, axis='columns')
+    df_forces = df_forces.rename(
+        {force_col: f"SHAP_{force_col}" for force_col in X.columns}, axis="columns"
+    )
 
     for force_col in X.columns:
         df_forces[force_col] = X[force_col]
@@ -68,7 +71,7 @@ def shap_force(
     df_forces["expected_value"] = expected_value
     df_forces["original_index"] = gdf_cbsa_bg["original_index"]
     df_forces[w.name] = w
-    df_forces['random_state'] = random_state
+    df_forces["random_state"] = random_state
 
     return df_forces
 
@@ -77,14 +80,22 @@ once = False
 
 
 def main():
-
     parser = LoggingArgumentParser(logger)
 
-    parser.add_argument('-v', '--vintage', required=True, type=int, help="Year to get data.")
-    parser.add_argument('--group-hispanic-latino', action='store_true')
+    parser.add_argument(
+        "-v", "--vintage", required=True, type=int, help="Year to get data."
+    )
+    parser.add_argument("--group-hispanic-latino", action="store_true")
 
-    parser.add_argument("-p", "--param_file", required=True, help="Parameter file, as created by treegress.py")
-    parser.add_argument("-o", "--output-dir", required=True, help="Output directory for plots.")
+    parser.add_argument(
+        "-p",
+        "--param_file",
+        required=True,
+        help="Parameter file, as created by treegress.py",
+    )
+    parser.add_argument(
+        "-o", "--output-dir", required=True, help="Output directory for plots."
+    )
 
     parser.add_argument("-r", "--add_relative", default=True, action="store_true")
 
@@ -100,7 +111,7 @@ def main():
     with open(args.param_file) as f:
         result = yaml.full_load(f)
 
-    params = result['params']
+    params = result["params"]
 
     gdf_cbsa_bg = read_data(args.input_file, drop_outliers=True)
 
@@ -112,7 +123,9 @@ def main():
     random_states = rng.integers(np.iinfo(np.int32).max, size=(k,), dtype=np.int32)
 
     df_shap_forces = pd.concat(
-        shap_force(params, gdf_cbsa_bg, args.vintage, args.group_hispanic_latino, random_state)
+        shap_force(
+            params, gdf_cbsa_bg, args.vintage, args.group_hispanic_latino, random_state
+        )
         for random_state in random_states
     )
 
@@ -141,7 +154,7 @@ def main():
             else:
                 feature = col.replace("SHAP_", "")
 
-            label = all_variables[all_variables['VARIABLE'] == feature]['LABEL'].iloc[0]
+            label = all_variables[all_variables["VARIABLE"] == feature]["LABEL"].iloc[0]
             label = label.replace("Estimate!!", "")
             label = label.replace("Total:!!", "")
             label = label.replace(":!!", "; ")
@@ -149,16 +162,24 @@ def main():
 
             if col_is_fractional:
                 shap_force_cols = [
-                    "original_index", f"frac_{feature}", f"SHAP_frac_{feature}", "random_state", "y_hat",
-                    util.VARIABLE_TOTAL_OWNER_OCCUPIED
+                    "original_index",
+                    f"frac_{feature}",
+                    f"SHAP_frac_{feature}",
+                    "random_state",
+                    "y_hat",
+                    util.VARIABLE_TOTAL_OWNER_OCCUPIED,
                 ]
                 if args.add_relative:
                     shap_force_cols = shap_force_cols + [f"rel_SHAP_frac_{feature}"]
                 sort_by = f"frac_{feature}"
             else:
                 shap_force_cols = [
-                    "original_index", feature, f"SHAP_{feature}", "random_state", "y_hat",
-                    util.VARIABLE_TOTAL_OWNER_OCCUPIED
+                    "original_index",
+                    feature,
+                    f"SHAP_{feature}",
+                    "random_state",
+                    "y_hat",
+                    util.VARIABLE_TOTAL_OWNER_OCCUPIED,
                 ]
                 if args.add_relative:
                     shap_force_cols = shap_force_cols + [f"rel_SHAP_{feature}"]
@@ -174,7 +195,9 @@ def main():
             assert same_fraction.all()
 
             if linear_regression_results is not None:
-                linear_coefficient = linear_regression_results['full']['coefficients'][sort_by]
+                linear_coefficient = linear_regression_results["full"]["coefficients"][
+                    sort_by
+                ]
             else:
                 linear_coefficient = None
 
@@ -190,7 +213,7 @@ def main():
                 k,
                 linear_coefficient,
                 _plot_id(feature, k, n, seed),
-                col_is_fractional
+                col_is_fractional,
             )
 
             if args.add_relative:
@@ -205,20 +228,27 @@ def main():
                     linear_coefficient,
                     _plot_id(feature, k, n, seed),
                     col_is_fractional,
-                    relative=True
+                    relative=True,
                 )
 
 
 def _plot_id(feature, k, n, seed):
-    return f'(f = {feature}; n = {n:,.0f}; k = {k}; s = {seed:08X})'
+    return f"(f = {feature}; n = {n:,.0f}; k = {k}; s = {seed:08X})"
 
 
 def plot_shap_force(
-    feature, label, background, bounds, output_dir, df_shap_force, k, linear_coefficient, plot_id,
+    feature,
+    label,
+    background,
+    bounds,
+    output_dir,
+    df_shap_force,
+    k,
+    linear_coefficient,
+    plot_id,
     col_is_fractional,
-    relative=False
+    relative=False,
 ):
-
     logger.info(f"Plotting for {feature}: {label}")
 
     if relative:
@@ -230,11 +260,11 @@ def plot_shap_force(
         mean_frac_feature = df_shap_force[feature].mean()
         y_hat_linear = linear_coefficient * (df_shap_force[feature] - mean_frac_feature)
         if relative:
-            mean_prediction = df_shap_force['y_hat'].mean()
+            mean_prediction = df_shap_force["y_hat"].mean()
             y_hat_linear = y_hat_linear / mean_prediction
 
         df_y_hat = pd.DataFrame(df_shap_force[[feature]])
-        df_y_hat['force_y_hat'] = y_hat_linear
+        df_y_hat["force_y_hat"] = y_hat_linear
 
     ax = None
 
@@ -244,6 +274,7 @@ def plot_shap_force(
         x_label_name = "income"
 
     if background:
+
         def plot_background(df_shap_force_for_state):
             nonlocal ax
             ax = df_shap_force_for_state.plot.scatter(
@@ -252,33 +283,37 @@ def plot_shap_force(
                 label=f"Impact of block group's\n{x_label_name} on all {k}\nensemble components.",
                 legend=ax is None,
                 figsize=(12, 8),
-                color='lightgray',
+                color="lightgray",
                 s=1,
-                ax=ax
+                ax=ax,
             )
 
-        df_shap_force.groupby('random_state').apply(plot_background)
+        df_shap_force.groupby("random_state").apply(plot_background)
 
-    df_stats_by_original_index = df_shap_force.groupby(
-        ["original_index", util.VARIABLE_TOTAL_OWNER_OCCUPIED, feature]
-    )[f"{shap_prefix}_{feature}"].agg(
-        ["mean", "std"]
-    ).reset_index().sort_values(feature)
-
-    min_force = df_stats_by_original_index['mean'].min()
-    max_force = df_stats_by_original_index['mean'].max()
-
-    df_stats_by_original_index['upper'] = (
-            df_stats_by_original_index['mean'] + 2 * df_stats_by_original_index['std']
+    df_stats_by_original_index = (
+        df_shap_force.groupby(
+            ["original_index", util.VARIABLE_TOTAL_OWNER_OCCUPIED, feature]
+        )[f"{shap_prefix}_{feature}"]
+        .agg(["mean", "std"])
+        .reset_index()
+        .sort_values(feature)
     )
-    df_stats_by_original_index['lower'] = (
-            df_stats_by_original_index['mean'] - 2 * df_stats_by_original_index['std']
+
+    min_force = df_stats_by_original_index["mean"].min()
+    max_force = df_stats_by_original_index["mean"].max()
+
+    df_stats_by_original_index["upper"] = (
+        df_stats_by_original_index["mean"] + 2 * df_stats_by_original_index["std"]
+    )
+    df_stats_by_original_index["lower"] = (
+        df_stats_by_original_index["mean"] - 2 * df_stats_by_original_index["std"]
     )
 
     if bounds:
         for y in ["lower", "upper"]:
             ax = df_stats_by_original_index.plot.scatter(
-                x=feature, y=y,
+                x=feature,
+                y=y,
                 color="purple",
                 legend=False,
                 s=1,
@@ -286,7 +321,8 @@ def plot_shap_force(
                 figsize=(12, 8) if ax is None else None,
             )
     ax = df_stats_by_original_index.plot.scatter(
-        x=feature, y="mean",
+        x=feature,
+        y="mean",
         color="darkgreen",
         label=f"Impact of block group's\n{x_label_name} on the\nensemble prediction.",
         s=df_stats_by_original_index[util.VARIABLE_TOTAL_OWNER_OCCUPIED] / 50,
@@ -295,18 +331,19 @@ def plot_shap_force(
 
     if linear_coefficient is not None:
         ax = df_y_hat.plot(
-            x=feature, y="force_y_hat",
-            color='purple',
-            linestyle='--',
+            x=feature,
+            y="force_y_hat",
+            color="purple",
+            linestyle="--",
             label="Impact on linear model.",
-            ax=ax
+            ax=ax,
         )
 
     if col_is_fractional:
         ax.set_xticks(np.arange(0.0, 1.01, 0.1))
 
     dollar_formatter = FuncFormatter(
-        lambda d, pos: f'\\${d:,.0f}' if d >= 0 else f'(\\${-d:,.0f})'
+        lambda d, pos: f"\\${d:,.0f}" if d >= 0 else f"(\\${-d:,.0f})"
     )
 
     if relative:
@@ -321,25 +358,30 @@ def plot_shap_force(
         x_width = util.MAX_INCOME
         ax.xaxis.set_major_formatter(dollar_formatter)
 
-    name = Path(output_dir).parent.name.replace('_', ' ')
-    ax.set_title(f'Impact of {label} on Median Home Value\n{name}')
+    name = Path(output_dir).parent.name.replace("_", " ")
+    ax.set_title(f"Impact of {label} on Median Home Value\n{name}")
     ax.set_xlabel(label)
     ax.set_ylabel("Impact")
     ax.text(
-        0.99, 0.01,
+        0.99,
+        0.01,
         plot_id,
         fontsize=8,
-        backgroundcolor='white',
-        horizontalalignment='right',
-        verticalalignment='bottom',
-        transform=ax.transAxes
+        backgroundcolor="white",
+        horizontalalignment="right",
+        verticalalignment="bottom",
+        transform=ax.transAxes,
     )
 
     if relative:
         if max_force > 0.5:
-            max_force = max(0.5, df_stats_by_original_index['mean'].quantile(0.98, 'higher'))
+            max_force = max(
+                0.5, df_stats_by_original_index["mean"].quantile(0.98, "higher")
+            )
         if min_force < -0.5:
-            min_force = min(-0.5, df_stats_by_original_index['mean'].quantile(0.02, 'lower'))
+            min_force = min(
+                -0.5, df_stats_by_original_index["mean"].quantile(0.02, "lower")
+            )
         max_force = max(max_force, 0.25)
         min_force = min(min_force, -0.25)
     else:
@@ -349,13 +391,13 @@ def plot_shap_force(
     ax.set_ylim(min_force, max_force)
     ax.set_xlim(-0.05 * x_width, 1.05 * x_width)
 
-    ax.axhline(0, color='black', zorder=1)
+    ax.axhline(0, color="black", zorder=1)
     ax.grid()
 
     for handle in ax.legend().legend_handles:
         handle._sizes = [25]
 
-    filename = label.replace(" ", "-").replace(";", '')
+    filename = label.replace(" ", "-").replace(";", "")
     if not relative:
         filename = f"abs-{filename}"
 

@@ -1,30 +1,34 @@
 import logging
-import geopandas as gpd
+
 import censusdis.data as ced
-import pandas as pd
 import numpy as np
+import pandas as pd
 import sklearn.metrics
 import xgboost
-from sklearn.model_selection import RandomizedSearchCV, KFold
-from scipy import stats
-from sklearn.metrics import r2_score, mean_absolute_percentage_error, make_scorer
-from bayes_opt import BayesianOptimization
 import yaml
-
+from bayes_opt import BayesianOptimization
 from censusdis.datasets import ACS5
+from scipy import stats
+from sklearn.metrics import mean_absolute_percentage_error
+from sklearn.model_selection import RandomizedSearchCV, KFold
 
 import rih.util as util
-from rih.util import xyw, read_data
 from rih.loggingargparser import LoggingArgumentParser
-
+from rih.util import xyw, read_data
 
 logger = logging.getLogger(__name__)
 
 
 def validate_gdf_cbsa_bg(gdf_cbsa_bg: pd.DataFrame, year: int):
-
     # There should be only one CBSA at this point.
-    assert len(gdf_cbsa_bg['METROPOLITAN_STATISTICAL_AREA_MICROPOLITAN_STATISTICAL_AREA'].unique()) == 1
+    assert (
+        len(
+            gdf_cbsa_bg[
+                "METROPOLITAN_STATISTICAL_AREA_MICROPOLITAN_STATISTICAL_AREA"
+            ].unique()
+        )
+        == 1
+    )
 
     leaf_cols = ced.variables.group_leaves(ACS5, year, util.GROUP_RACE_ETHNICITY)
     leaf_frac_cols = [f"frac_{col}" for col in leaf_cols]
@@ -50,7 +54,6 @@ def validate_gdf_cbsa_bg(gdf_cbsa_bg: pd.DataFrame, year: int):
 
 def xgb_r2_objective(X, y, w, random_state):
     def objective(n_estimators, max_depth, **kwargs):
-
         scores = []
 
         n_splits = 5
@@ -64,18 +67,19 @@ def xgb_r2_objective(X, y, w, random_state):
             # Truncate to ints as suggested in
             # https://github.com/fmfn/BayesianOptimization/blob/master/examples/advanced-tour.ipynb
             xgb = xgboost.XGBRegressor(
-                #eval_metric="rmsle",
+                # eval_metric="rmsle",
                 eval_metric="mape",
                 n_estimators=int(np.round(n_estimators)),
                 max_depth=int(np.round(max_depth)),
-                **kwargs
+                **kwargs,
             )
 
             xgb = xgb.fit(X=X_train, y=y_train, sample_weight=w_train)
             # score = xgb.score(X=X_test, y=y_test, sample_weight=w_test)
             y_hat = xgb.predict(X_test)
-            # score = -np.sqrt(sklearn.metrics.mean_squared_log_error(y_true=y_test, y_pred=y_hat, sample_weight=w_test))
-            score = 1 - sklearn.metrics.mean_absolute_percentage_error(y_true=y_test, y_pred=y_hat, sample_weight=w_test)
+            score = 1 - sklearn.metrics.mean_absolute_percentage_error(
+                y_true=y_test, y_pred=y_hat, sample_weight=w_test
+            )
             scores.append(score)
 
         logger.info(f"Individual scores: {scores}.")
@@ -86,12 +90,11 @@ def xgb_r2_objective(X, y, w, random_state):
 
 
 def hp_optimize(X, y, w):
-
     pbounds = {
-        'n_estimators': (10, 50),
-        'max_depth': (2, 10),
+        "n_estimators": (10, 50),
+        "max_depth": (2, 10),
         # 'subsample': (0.1, 0.9),
-        'learning_rate': (0.02, 0.2),
+        "learning_rate": (0.02, 0.2),
         # 'alpha': (0, 1),
     }
 
@@ -99,7 +102,7 @@ def hp_optimize(X, y, w):
         f=xgb_r2_objective(X, y, w, 324644339),
         pbounds=pbounds,
         verbose=1,
-        random_state=17*93,
+        random_state=17 * 93,
         allow_duplicate_points=True,
     )
 
@@ -107,17 +110,16 @@ def hp_optimize(X, y, w):
 
     result = optimizer.max
 
-    result['params']['max_depth'] = int(np.round(result['params']['max_depth']))
-    result['params']['n_estimators'] = int(np.round(result['params']['n_estimators']))
-    result['params']['learning_rate'] = float(result['params']['learning_rate'])
+    result["params"]["max_depth"] = int(np.round(result["params"]["max_depth"]))
+    result["params"]["n_estimators"] = int(np.round(result["params"]["n_estimators"]))
+    result["params"]["learning_rate"] = float(result["params"]["learning_rate"])
 
-    result['target'] = float(result['target'])
+    result["target"] = float(result["target"])
 
     return result
 
 
 def optimize(gdf_cbsa_bg: pd.DataFrame, year: int, group_lh_together: bool):
-
     X, w, y = xyw(gdf_cbsa_bg, year, group_lh_together)
 
     result = hp_optimize(X, y, w)
@@ -126,7 +128,6 @@ def optimize(gdf_cbsa_bg: pd.DataFrame, year: int, group_lh_together: bool):
 
 
 def optimize2(gdf_cbsa_bg: pd.DataFrame, year: int, group_lh_together: bool):
-
     X, w, y = xyw(gdf_cbsa_bg, year, group_lh_together)
 
     reg_xgb = xgboost.XGBRegressor(eval_metric="mape")
@@ -134,12 +135,12 @@ def optimize2(gdf_cbsa_bg: pd.DataFrame, year: int, group_lh_together: bool):
     # reg_rf = xgboost.XGBRFRegressor(eval_metric="mape")
 
     param_dist = {
-        'n_estimators': stats.randint(10, 100),
-        'learning_rate': stats.uniform(0.01, 0.07),
+        "n_estimators": stats.randint(10, 100),
+        "learning_rate": stats.uniform(0.01, 0.07),
         # 'subsample': stats.uniform(0.3, 0.7),
-        'max_depth': stats.randint(2, 6),
+        "max_depth": stats.randint(2, 6),
         # 'colsample_bytree': stats.uniform(0.5, 0.45),
-        'min_child_weight': stats.randint(1, 4)
+        "min_child_weight": stats.randint(1, 4),
     }
 
     def score_neg_weighted_mean_absolute_percentage_error(estimator, X_val, y_val):
@@ -169,7 +170,7 @@ def optimize2(gdf_cbsa_bg: pd.DataFrame, year: int, group_lh_together: bool):
         "target": 1 + float(reg.best_score_),
     }
 
-    result['params']['learning_rate'] = float(result['params']['learning_rate'])
+    result["params"]["learning_rate"] = float(result["params"]["learning_rate"])
 
     return result
 
@@ -177,8 +178,10 @@ def optimize2(gdf_cbsa_bg: pd.DataFrame, year: int, group_lh_together: bool):
 def main():
     parser = LoggingArgumentParser(logger)
 
-    parser.add_argument('-v', '--vintage', required=True, type=int, help="Year to get data.")
-    parser.add_argument('--group-hispanic-latino', action='store_true')
+    parser.add_argument(
+        "-v", "--vintage", required=True, type=int, help="Year to get data."
+    )
+    parser.add_argument("--group-hispanic-latino", action="store_true")
     parser.add_argument("-o", "--output-file", help="Output file for parameters.")
     parser.add_argument("input_file", help="Input file, as created by datagen.py")
 
@@ -199,7 +202,7 @@ def main():
 
     output_file = args.output_file
 
-    with open(output_file, 'w') as f:
+    with open(output_file, "w") as f:
         yaml.dump(result, f, sort_keys=True)
 
 

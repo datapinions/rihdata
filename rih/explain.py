@@ -11,12 +11,12 @@ def main():
     parser = ArgumentParser()
 
     parser.add_argument(
-        '--log',
-        choices=['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'],
+        "--log",
+        choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
         help="Logging level.",
-        default='WARNING'
+        default="WARNING",
     )
-    parser.add_argument('input', type=str, help="Input file.")
+    parser.add_argument("input", type=str, help="Input file.")
 
     args = parser.parse_args()
 

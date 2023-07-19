@@ -77,20 +77,60 @@ CBSA_BDL = "25540"  # Hartford-East Hartford-Middletown, CT Metro Area
 CBSA_BUF = "15380"  # Buffalo-Cheektowaga, NY Metro Area
 
 CBSA_TOP_50_ACS5_2020 = [
-    CBSA_NYC, CBSA_LAX, CBSA_ORD, CBSA_DFW, CBSA_IAH,
-    CBSA_DCA, CBSA_MIA, CBSA_PHL, CBSA_ATL, CBSA_PHX,
-    CBSA_BOS, CBSA_SFO, CBSA_ONT, CBSA_DTW, CBSA_SEA,
-    CBSA_MSP, CBSA_SAN, CBSA_TPA, CBSA_DEN, CBSA_STL,
-    CBSA_BWI, CBSA_CLT, CBSA_MCO, CBSA_SAT, CBSA_PDX,
-    CBSA_SMF, CBSA_PIT, CBSA_LAS, CBSA_CVG, CBSA_AUS,
-    CBSA_MCI, CBSA_CMH, CBSA_SJU, CBSA_CLE, CBSA_IND,
-    CBSA_SJC, CBSA_BNA, CBSA_ORF, CBSA_PVD, CBSA_MKE,
-    CBSA_JAX, CBSA_OKC, CBSA_RDU, CBSA_MEM, CBSA_RIC,
-    CBSA_MSY, CBSA_SDF, CBSA_SLC, CBSA_BDL, CBSA_BUF,
+    CBSA_NYC,
+    CBSA_LAX,
+    CBSA_ORD,
+    CBSA_DFW,
+    CBSA_IAH,
+    CBSA_DCA,
+    CBSA_MIA,
+    CBSA_PHL,
+    CBSA_ATL,
+    CBSA_PHX,
+    CBSA_BOS,
+    CBSA_SFO,
+    CBSA_ONT,
+    CBSA_DTW,
+    CBSA_SEA,
+    CBSA_MSP,
+    CBSA_SAN,
+    CBSA_TPA,
+    CBSA_DEN,
+    CBSA_STL,
+    CBSA_BWI,
+    CBSA_CLT,
+    CBSA_MCO,
+    CBSA_SAT,
+    CBSA_PDX,
+    CBSA_SMF,
+    CBSA_PIT,
+    CBSA_LAS,
+    CBSA_CVG,
+    CBSA_AUS,
+    CBSA_MCI,
+    CBSA_CMH,
+    CBSA_SJU,
+    CBSA_CLE,
+    CBSA_IND,
+    CBSA_SJC,
+    CBSA_BNA,
+    CBSA_ORF,
+    CBSA_PVD,
+    CBSA_MKE,
+    CBSA_JAX,
+    CBSA_OKC,
+    CBSA_RDU,
+    CBSA_MEM,
+    CBSA_RIC,
+    CBSA_MSY,
+    CBSA_SDF,
+    CBSA_SLC,
+    CBSA_BDL,
+    CBSA_BUF,
 ]
 
 # This is what the column for CBSA is returned as.
-COLUMN_CBSA = 'METROPOLITAN_STATISTICAL_AREA_MICROPOLITAN_STATISTICAL_AREA'
+COLUMN_CBSA = "METROPOLITAN_STATISTICAL_AREA_MICROPOLITAN_STATISTICAL_AREA"
 
 
 # Black and white alone populations.
@@ -130,10 +170,10 @@ FRAC_VARIABLES = {
     "Non-Hispanic Black": FRAC_NH_BLACK,
     "Non-Hispanic Asian": FRAC_NH_ASIAN,
     "Hispanic White": FRAC_H_WHITE,
-    "Hispanic White": FRAC_H_OTHER,
+    "Hispanic Other": FRAC_H_OTHER,
 }
 
-# Median houshold income in last 12 months.
+# Median household income in last 12 months.
 # See https://api.census.gov/data/2021/acs/acs5/groups/B19013.html
 GROUP_MEDIAN_INCOME = "B19013"
 VARIABLE_MEDIAN_INCOME = f"{GROUP_MEDIAN_INCOME}_001E"
@@ -151,25 +191,33 @@ _BASE_VAR_NAMES = {
     VARIABLE_NH_WHITE: "Non-Hispanic White",
     VARIABLE_NH_BLACK: "Non-Hispanic Black",
     VARIABLE_NH_ASIAN: "Non-Hispanic Asian",
-
     VARIABLE_H_WHITE: "Hispanic or Latino White",
     VARIABLE_H_BLACK: "Hispanic or Latino Black",
     VARIABLE_H_OTHER: "Hispanic or Latino Some Other Race",
 }
 
 VAR_NAMES = dict(
-    {f"frac_{var}": f"Fraction of population that is {name}" for var, name in _BASE_VAR_NAMES.items()},
-    **_BASE_VAR_NAMES
+    {
+        f"frac_{var}": f"Fraction of population that is {name}"
+        for var, name in _BASE_VAR_NAMES.items()
+    },
+    **_BASE_VAR_NAMES,
 )
 
 VAR_NAMES = dict(
-    {f"imp_frac_{var}": f"Impact of {name} on Median Home Value" for var, name in _BASE_VAR_NAMES.items()},
-    **VAR_NAMES
+    {
+        f"imp_frac_{var}": f"Impact of {name} on Median Home Value"
+        for var, name in _BASE_VAR_NAMES.items()
+    },
+    **VAR_NAMES,
 )
 
 VAR_NAMES = dict(
-    {f"rel_imp_frac_{var}": f"Relative Impact of {name} on Median Home Value" for var, name in _BASE_VAR_NAMES.items()},
-    **VAR_NAMES
+    {
+        f"rel_imp_frac_{var}": f"Relative Impact of {name} on Median Home Value"
+        for var, name in _BASE_VAR_NAMES.items()
+    },
+    **VAR_NAMES,
 )
 
 VAR_NAMES = dict(
@@ -177,21 +225,20 @@ VAR_NAMES = dict(
         VARIABLE_MEDIAN_INCOME: "Median Household Income",
         VARIABLE_MEDIAN_VALUE: "Medain Home Value",
     },
-    **VAR_NAMES
+    **VAR_NAMES,
 )
 
 
 def add_fractional_population(leaves_race_ethnicity, df: pd.DataFrame) -> pd.DataFrame:
     for leaf in leaves_race_ethnicity + [
-        VARIABLE_BLACK_ALONE, VARIABLE_WHITE_ALONE, VARIABLE_NH_BLACK, VARIABLE_NH_WHITE
+        VARIABLE_BLACK_ALONE,
+        VARIABLE_WHITE_ALONE,
+        VARIABLE_NH_BLACK,
+        VARIABLE_NH_WHITE,
     ]:
-        df[f'frac_{leaf}'] = df[leaf] / df[VARIABLE_TOTAL_POP]
+        df[f"frac_{leaf}"] = df[leaf] / df[VARIABLE_TOTAL_POP]
 
     return df
-
-
-def xgb_cv_objective(X, y, w):
-    dmatrix = xgboost.DMatrix(X, y, weight=w)
 
 
 def xgb_r2_objective(X_train, X_test, y_train, y_test, w_train, w_test):
@@ -222,18 +269,20 @@ def split_xyw(df, demographic_fraction_vars):
 
 
 def hp_optimize(df, demographic_fraction_vars):
-    X_train, X_test, y_train, y_test, w_train, w_test = split_xyw(df, demographic_fraction_vars)
+    X_train, X_test, y_train, y_test, w_train, w_test = split_xyw(
+        df, demographic_fraction_vars
+    )
 
     pbounds = {
-        'n_estimators': (10, 50),
-        'max_depth': (2, 10),
+        "n_estimators": (10, 50),
+        "max_depth": (2, 10),
     }
 
     optimizer = BayesianOptimization(
         f=xgb_r2_objective(X_train, X_test, y_train, y_test, w_train, w_test),
         pbounds=pbounds,
         verbose=1,
-        random_state=17*93,
+        random_state=17 * 93,
         allow_duplicate_points=True,
     )
 
@@ -241,20 +290,21 @@ def hp_optimize(df, demographic_fraction_vars):
 
     result = optimizer.max
 
-    result['params']['max_depth'] = int(np.round(result['params']['max_depth']))
-    result['params']['n_estimators'] = int(np.round(result['params']['n_estimators']))
+    result["params"]["max_depth"] = int(np.round(result["params"]["max_depth"]))
+    result["params"]["n_estimators"] = int(np.round(result["params"]["n_estimators"]))
 
     return result
 
 
 def force_plots(cbsa_short_name, shap_values, X_test, output_dir: str):
-
     dollar_formatter = FuncFormatter(
-        lambda d, pos: f'\${d:,.0f}' if d >= 0 else f'(\${-d:,.0f})'
+        lambda d, pos: f"\\${d:,.0f}" if d >= 0 else f"(\\${-d:,.0f})"
     )
 
     plot_variables = [
-        VARIABLE_NH_WHITE, VARIABLE_NH_BLACK, VARIABLE_NH_ASIAN,
+        VARIABLE_NH_WHITE,
+        VARIABLE_NH_BLACK,
+        VARIABLE_NH_ASIAN,
         VARIABLE_H_WHITE,
         VARIABLE_H_BLACK,
         VARIABLE_H_OTHER,
@@ -282,28 +332,25 @@ def force_plots(cbsa_short_name, shap_values, X_test, output_dir: str):
             index=X_test.index,
         )[[force_frac]]
 
-        df_force = df_force.rename({force_frac: f"SHAP_{force_variable}"}, axis='columns')
+        df_force = df_force.rename(
+            {force_frac: f"SHAP_{force_variable}"}, axis="columns"
+        )
 
         df_force[force_frac] = X_test[force_frac]
 
         df_force = df_force.sort_values(force_frac)
 
-        df_force['smooth'] = gaussian_filter1d(df_force[f"SHAP_{force_variable}"], 5)
+        df_force["smooth"] = gaussian_filter1d(df_force[f"SHAP_{force_variable}"], 5)
 
-        max_force = max([max_force, df_force['smooth'].max()])
-        min_force = min([min_force, df_force['smooth'].min()])
+        max_force = max([max_force, df_force["smooth"].max()])
+        min_force = min([min_force, df_force["smooth"].min()])
 
         ax = df_force.plot.scatter(
-            force_frac, f"SHAP_{force_variable}",
-            color='darkgrey',
-            s=10,
-            ax=ax
+            force_frac, f"SHAP_{force_variable}", color="darkgrey", s=10, ax=ax
         )
 
         ax = df_force.plot(
-            force_frac, 'smooth', color='C1', legend=False,
-            linewidth=3,
-            ax=ax
+            force_frac, "smooth", color="C1", legend=False, linewidth=3, ax=ax
         )
 
         ax.set_xticks(np.arange(0.0, 1.01, 0.1))
@@ -312,11 +359,12 @@ def force_plots(cbsa_short_name, shap_values, X_test, output_dir: str):
         ax.xaxis.set_major_formatter(PercentFormatter(1.0, decimals=0))
 
         ax.set_title(
-            f'{cbsa_short_name.title()} Area CBSA - Impact of {VAR_NAMES[force_frac].title()} on Median Home Value')
+            f"{cbsa_short_name.title()} Area CBSA - Impact of {VAR_NAMES[force_frac].title()} on Median Home Value"
+        )
         ax.set_xlabel(VAR_NAMES[force_frac])
         ax.set_ylabel("Impact")
 
-        ax.axhline(0, color='black', zorder=1)
+        ax.axhline(0, color="black", zorder=1)
         ax.grid()
 
     max_force = (max_force // 10_000) * 10_000 + 20_000
@@ -325,25 +373,32 @@ def force_plots(cbsa_short_name, shap_values, X_test, output_dir: str):
     for ax in axes:
         ax.set_ylim(min_force, max_force)
 
-    fig.savefig(os.path.join(output_dir, f"{cbsa_short_name.replace(' ', '-')}_tear_sheet.png"))
+    fig.savefig(
+        os.path.join(output_dir, f"{cbsa_short_name.replace(' ', '-')}_tear_sheet.png")
+    )
 
     plt.close(fig)
 
 
 def xyw(gdf_cbsa_bg, year, group_lh_together: bool):
     # There should be only one CBSA at this point.
-    assert len(gdf_cbsa_bg['METROPOLITAN_STATISTICAL_AREA_MICROPOLITAN_STATISTICAL_AREA'].unique()) == 1
+    assert (
+        len(
+            gdf_cbsa_bg[
+                "METROPOLITAN_STATISTICAL_AREA_MICROPOLITAN_STATISTICAL_AREA"
+            ].unique()
+        )
+        == 1
+    )
 
     leaves_race_ethnicity = ced.variables.group_leaves(ACS5, year, GROUP_RACE_ETHNICITY)
 
     if group_lh_together:
         demographic_fraction_vars = [
-            f'frac_{leaf}'
-            for leaf in leaves_race_ethnicity
-            if leaf <= VARIABLE_H_TOTAL
-        ] + [f'frac_{VARIABLE_H_TOTAL}']
+            f"frac_{leaf}" for leaf in leaves_race_ethnicity if leaf <= VARIABLE_H_TOTAL
+        ] + [f"frac_{VARIABLE_H_TOTAL}"]
     else:
-        demographic_fraction_vars = [f'frac_{leaf}' for leaf in leaves_race_ethnicity]
+        demographic_fraction_vars = [f"frac_{leaf}" for leaf in leaves_race_ethnicity]
 
     X = gdf_cbsa_bg[[VARIABLE_MEDIAN_INCOME] + demographic_fraction_vars]
     y = gdf_cbsa_bg[VARIABLE_MEDIAN_VALUE]
@@ -363,8 +418,8 @@ def read_data(filename: str, drop_outliers: bool = True, **kwargs) -> gpd.GeoDat
     if drop_outliers:
         gdf = gpd.GeoDataFrame(
             gdf[
-                (gdf[VARIABLE_MEDIAN_VALUE] < MAX_PRICE) &
-                (gdf[VARIABLE_MEDIAN_INCOME] < MAX_INCOME)
+                (gdf[VARIABLE_MEDIAN_VALUE] < MAX_PRICE)
+                & (gdf[VARIABLE_MEDIAN_INCOME] < MAX_INCOME)
             ]
         )
 

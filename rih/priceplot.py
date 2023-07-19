@@ -1,20 +1,27 @@
-
 import logging
 from pathlib import Path
 
-import geopandas as gpd
 import matplotlib.pyplot as plt
 from matplotlib.ticker import FuncFormatter
 
 from rih.loggingargparser import LoggingArgumentParser
-from rih.util import VARIABLE_MEDIAN_INCOME, VARIABLE_MEDIAN_VALUE, read_data, MAX_INCOME, MAX_PRICE
+from rih.util import (
+    VARIABLE_MEDIAN_INCOME,
+    VARIABLE_MEDIAN_VALUE,
+    read_data,
+    MAX_INCOME,
+    MAX_PRICE,
+)
 
 logger = logging.getLogger(__name__)
+
 
 def main():
     parser = LoggingArgumentParser(logger)
 
-    parser.add_argument('-v', '--vintage', required=True, type=int, help="Year to get data.")
+    parser.add_argument(
+        "-v", "--vintage", required=True, type=int, help="Year to get data."
+    )
     parser.add_argument("-o", "--output-file", help="Output file for parameters.")
     parser.add_argument("input_file", help="Input file, as created by datagen.py")
 
@@ -28,18 +35,19 @@ def main():
     gdf_cbsa_bg = read_data(input_file, drop_outliers=False)
 
     df_data = gdf_cbsa_bg[[VARIABLE_MEDIAN_INCOME, VARIABLE_MEDIAN_VALUE]][
-        (gdf_cbsa_bg[VARIABLE_MEDIAN_INCOME] < MAX_INCOME) &
-        (gdf_cbsa_bg[VARIABLE_MEDIAN_VALUE] < MAX_PRICE)
+        (gdf_cbsa_bg[VARIABLE_MEDIAN_INCOME] < MAX_INCOME)
+        & (gdf_cbsa_bg[VARIABLE_MEDIAN_VALUE] < MAX_PRICE)
     ]
     df_outliers = gdf_cbsa_bg[[VARIABLE_MEDIAN_INCOME, VARIABLE_MEDIAN_VALUE]][
-        (gdf_cbsa_bg[VARIABLE_MEDIAN_INCOME] >= MAX_INCOME) |
-        (gdf_cbsa_bg[VARIABLE_MEDIAN_VALUE] >= MAX_PRICE)
+        (gdf_cbsa_bg[VARIABLE_MEDIAN_INCOME] >= MAX_INCOME)
+        | (gdf_cbsa_bg[VARIABLE_MEDIAN_VALUE] >= MAX_PRICE)
     ]
 
     ax = df_data.plot.scatter(
         VARIABLE_MEDIAN_INCOME,
         VARIABLE_MEDIAN_VALUE,
-        label=f"Data Points (n = {len(df_data.index):,d})", legend=True,
+        label=f"Data Points (n = {len(df_data.index):,d})",
+        legend=True,
         figsize=(12, 8),
         s=2,
     )
@@ -47,8 +55,9 @@ def main():
     ax = df_outliers.plot.scatter(
         VARIABLE_MEDIAN_INCOME,
         VARIABLE_MEDIAN_VALUE,
-        color='red',
-        label=f"Outliers (n = {len(df_outliers.index):,d})", legend=True,
+        color="red",
+        label=f"Outliers (n = {len(df_outliers.index):,d})",
+        legend=True,
         ax=ax,
         s=1,
     )
@@ -68,7 +77,7 @@ def main():
         handle._sizes = [25]
 
     dollar_formatter = FuncFormatter(
-        lambda d, pos: f'\\${d:,.0f}' if d >= 0 else f'(\\${-d:,.0f})'
+        lambda d, pos: f"\\${d:,.0f}" if d >= 0 else f"(\\${-d:,.0f})"
     )
     ax.xaxis.set_major_formatter(dollar_formatter)
     ax.yaxis.set_major_formatter(dollar_formatter)

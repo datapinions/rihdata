@@ -1,4 +1,3 @@
-
 import logging
 from argparse import ArgumentParser
 import geopandas as gpd
@@ -18,7 +17,7 @@ def top_n_cbsas(n: int, vintage: int) -> gpd.GeoDataFrame:
         ACS5,
         vintage,
         ["NAME", util.VARIABLE_TOTAL_POP],
-        metropolitan_statistical_area_micropolitan_statistical_area='*',
+        metropolitan_statistical_area_micropolitan_statistical_area="*",
     )
 
     df_top_n = df_all_cbsa[
@@ -32,14 +31,16 @@ def main():
     parser = ArgumentParser()
 
     parser.add_argument(
-        '--log',
-        choices=['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'],
+        "--log",
+        choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
         help="Logging level.",
-        default='WARNING'
+        default="WARNING",
     )
-    parser.add_argument('-n', required=True, type=int, help="Number of top CBSAs.")
-    parser.add_argument('-v', '--vintage', type=int, help="Year to get data.")
-    parser.add_argument('-s', '--suffix', type=str, help='Data file suffix.', default='.geojson')
+    parser.add_argument("-n", required=True, type=int, help="Number of top CBSAs.")
+    parser.add_argument("-v", "--vintage", type=int, help="Year to get data.")
+    parser.add_argument(
+        "-s", "--suffix", type=str, help="Data file suffix.", default=".geojson"
+    )
     args = parser.parse_args()
 
     level = getattr(logging, args.log)
@@ -50,7 +51,7 @@ def main():
     df_top_n = top_n_cbsas(args.n, args.vintage)
 
     for row in df_top_n[
-        ['METROPOLITAN_STATISTICAL_AREA_MICROPOLITAN_STATISTICAL_AREA', 'NAME']
+        ["METROPOLITAN_STATISTICAL_AREA_MICROPOLITAN_STATISTICAL_AREA", "NAME"]
     ].itertuples(index=False):
         print(f"{row[1].replace(' ', '_').replace('/', '_')}/{row[0]}{args.suffix}")
 
