@@ -50,7 +50,7 @@ TOP_N_DATA := $(patsubst %,$(DATA_DIR)/%,$(TOP_N))
 
 # Summary statistics about the data for each CBSA and overall
 TOP_N_SUMMARY_STATS := $(TOP_N_DATA:%.geojson=%-summary.csv)
-OVERALL_SUMMARY := $(DATA_DIR)/overall-summary.csv
+OVERALL_SUMMARY := $(DATA_DIR)/overall-summary-$(YEAR).csv
 
 # These are additional files and directories derived from the list of top
 # N data paths.
@@ -72,7 +72,7 @@ RANKED_FILE :=  $(PARAMS_DIR)/ranked_$(N)_$(YEAR)_cbsa.csv
 
 all: summary ranked_file all_plots
 
-all_plots: shap_plots price_plots price_feature_plots paper_plots
+all_plots: shap_plots price_plots price_feature_plots
 
 shap_plots: $(TOP_N_SHAP_PLOT_DIRS)
 
@@ -115,6 +115,7 @@ $(OVERALL_SUMMARY): $(TOP_N_DATA)
 # How to go from a data file for a single CBSA to a parameter file.
 # for the same CBSA.
 $(PARAMS_DIR)/%.params.yaml: $(DATA_DIR)/%.geojson
+	mkdir -p $(@D)
 	$(PYTHON) -m rih.treegress --log $(LOGLEVEL) -v $(YEAR) $(GROUP_HISPANIC_LATINO) -o $@ $<
 
 # How to build the file that ranks the CBSAs by score. This is a
