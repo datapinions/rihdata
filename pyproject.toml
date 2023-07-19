@@ -16,11 +16,8 @@ plotly = "^5.12.0"
 autograd = "^1.5"
 bayesian-optimization = "^1.4.2"
 treeplot = "^0.1.16"
-shap = "^0.41.0"
-# This pin is a workaround for the fact that SHAP 0.41.0 does not work
-# with numpy 1.24.0 or newer. When there is a new release of shap that
-# works with newer numpy versions we can use it an eliminate this pin.
-numpy = "1.23.2"
+shap = "^0.42.1"
+numpy = "^1.24.3"
 PyYAML = "^6.0"
 tensorflow = "^2.13.0"
 
