@@ -118,7 +118,13 @@ def main():
 
     year = args.vintage
 
-    all_variables = ced.variables.all_variables(ACS5, year, util.GROUP_RACE_ETHNICITY)
+    # All the variables in both groups that become a part of our X.
+    all_variables = pd.concat(
+        [
+            ced.variables.all_variables(ACS5, year, util.GROUP_RACE_ETHNICITY),
+            ced.variables.all_variables(ACS5, year, util.GROUP_MEDIAN_INCOME),
+        ]
+    )
 
     linear_regression_file = Path(args.input_file.replace(".geojson", ".linreg.yaml"))
     if linear_regression_file.exists():
@@ -128,35 +134,54 @@ def main():
         linear_regression_results = None
 
     for col in df_shap_forces.columns:
-        if col.startswith("SHAP_frac_"):
-            feature = col.replace("SHAP_frac_", "")
+        if col.startswith("SHAP_"):
+            col_is_fractional = col.startswith("SHAP_frac_")
+            if col_is_fractional:
+                feature = col.replace("SHAP_frac_", "")
+            else:
+                feature = col.replace("SHAP_", "")
 
             label = all_variables[all_variables['VARIABLE'] == feature]['LABEL'].iloc[0]
-            label = label.replace("Estimate!!Total:!!", "")
+            label = label.replace("Estimate!!", "")
+            label = label.replace("Total:!!", "")
             label = label.replace(":!!", "; ")
+            label = label.replace(":", "")
 
-            shap_force_cols = [
-                "original_index", f"frac_{feature}", f"SHAP_frac_{feature}", "random_state", "y_hat",
-                util.VARIABLE_TOTAL_OWNER_OCCUPIED
-            ]
-            if args.add_relative:
-                shap_force_cols = shap_force_cols + [f"rel_SHAP_frac_{feature}"]
-            df_shap_force = df_shap_forces[shap_force_cols].sort_values(f"frac_{feature}")
+            if col_is_fractional:
+                shap_force_cols = [
+                    "original_index", f"frac_{feature}", f"SHAP_frac_{feature}", "random_state", "y_hat",
+                    util.VARIABLE_TOTAL_OWNER_OCCUPIED
+                ]
+                if args.add_relative:
+                    shap_force_cols = shap_force_cols + [f"rel_SHAP_frac_{feature}"]
+                sort_by = f"frac_{feature}"
+            else:
+                shap_force_cols = [
+                    "original_index", feature, f"SHAP_{feature}", "random_state", "y_hat",
+                    util.VARIABLE_TOTAL_OWNER_OCCUPIED
+                ]
+                if args.add_relative:
+                    shap_force_cols = shap_force_cols + [f"rel_SHAP_{feature}"]
+                sort_by = feature
+
+            df_shap_force = df_shap_forces[shap_force_cols].sort_values(sort_by)
 
             # All the points from the same original index should have the same
             # fraction of the feature.
-            same_fraction = df_shap_forces.groupby("original_index")[[f"frac_{feature}"]].apply(
-                lambda df_group: len(df_group[f"frac_{feature}"].unique()) == 1
+            same_fraction = df_shap_forces.groupby("original_index")[[sort_by]].apply(
+                lambda df_group: len(df_group[sort_by].unique()) == 1
             )
             assert same_fraction.all()
 
             if linear_regression_results is not None:
-                linear_coefficient = linear_regression_results['full']['coefficients'][f'frac_{feature}']
+                linear_coefficient = linear_regression_results['full']['coefficients'][sort_by]
             else:
                 linear_coefficient = None
 
+            plot_feature = sort_by
+
             plot_shap_force(
-                feature,
+                plot_feature,
                 label,
                 args.background,
                 args.bounds,
@@ -164,12 +189,13 @@ def main():
                 df_shap_force,
                 k,
                 linear_coefficient,
-                _plot_id(feature, k, n, seed)
+                _plot_id(feature, k, n, seed),
+                col_is_fractional
             )
 
             if args.add_relative:
                 plot_shap_force(
-                    feature,
+                    plot_feature,
                     label,
                     args.background,
                     args.bounds,
@@ -178,6 +204,7 @@ def main():
                     k,
                     linear_coefficient,
                     _plot_id(feature, k, n, seed),
+                    col_is_fractional,
                     relative=True
                 )
 
@@ -187,7 +214,9 @@ def _plot_id(feature, k, n, seed):
 
 
 def plot_shap_force(
-        feature, label, background, bounds, output_dir, df_shap_force, k, linear_coefficient, plot_id, relative=False
+    feature, label, background, bounds, output_dir, df_shap_force, k, linear_coefficient, plot_id,
+    col_is_fractional,
+    relative=False
 ):
 
     logger.info(f"Plotting for {feature}: {label}")
@@ -198,24 +227,29 @@ def plot_shap_force(
         shap_prefix = "SHAP"
 
     if linear_coefficient is not None:
-        mean_frac_feature = df_shap_force[f'frac_{feature}'].mean()
-        y_hat_linear = linear_coefficient * (df_shap_force[f'frac_{feature}'] - mean_frac_feature)
+        mean_frac_feature = df_shap_force[feature].mean()
+        y_hat_linear = linear_coefficient * (df_shap_force[feature] - mean_frac_feature)
         if relative:
             mean_prediction = df_shap_force['y_hat'].mean()
             y_hat_linear = y_hat_linear / mean_prediction
 
-        df_y_hat = pd.DataFrame(df_shap_force[[f'frac_{feature}']])
+        df_y_hat = pd.DataFrame(df_shap_force[[feature]])
         df_y_hat['force_y_hat'] = y_hat_linear
 
     ax = None
+
+    if col_is_fractional:
+        x_label_name = "percentage"
+    else:
+        x_label_name = "income"
 
     if background:
         def plot_background(df_shap_force_for_state):
             nonlocal ax
             ax = df_shap_force_for_state.plot.scatter(
-                x=f"frac_{feature}",
-                y=f"{shap_prefix}_frac_{feature}",
-                label=f"Impact of block group's\npercentage on all {k}\nensemble components.",
+                x=feature,
+                y=f"{shap_prefix}_{feature}",
+                label=f"Impact of block group's\n{x_label_name} on all {k}\nensemble components.",
                 legend=ax is None,
                 figsize=(12, 8),
                 color='lightgray',
@@ -226,10 +260,10 @@ def plot_shap_force(
         df_shap_force.groupby('random_state').apply(plot_background)
 
     df_stats_by_original_index = df_shap_force.groupby(
-        ["original_index", util.VARIABLE_TOTAL_OWNER_OCCUPIED, f"frac_{feature}"]
-    )[f"{shap_prefix}_frac_{feature}"].agg(
+        ["original_index", util.VARIABLE_TOTAL_OWNER_OCCUPIED, feature]
+    )[f"{shap_prefix}_{feature}"].agg(
         ["mean", "std"]
-    ).reset_index().sort_values(f"frac_{feature}")
+    ).reset_index().sort_values(feature)
 
     min_force = df_stats_by_original_index['mean'].min()
     max_force = df_stats_by_original_index['mean'].max()
@@ -244,7 +278,7 @@ def plot_shap_force(
     if bounds:
         for y in ["lower", "upper"]:
             ax = df_stats_by_original_index.plot.scatter(
-                x=f"frac_{feature}", y=y,
+                x=feature, y=y,
                 color="purple",
                 legend=False,
                 s=1,
@@ -252,33 +286,41 @@ def plot_shap_force(
                 figsize=(12, 8) if ax is None else None,
             )
     ax = df_stats_by_original_index.plot.scatter(
-        x=f"frac_{feature}", y="mean",
+        x=feature, y="mean",
         color="darkgreen",
-        label="Impact of block group's\npercentage on the\nensemble prediction.",
+        label=f"Impact of block group's\n{x_label_name} on the\nensemble prediction.",
         s=df_stats_by_original_index[util.VARIABLE_TOTAL_OWNER_OCCUPIED] / 50,
         ax=ax,
     )
 
     if linear_coefficient is not None:
         ax = df_y_hat.plot(
-            x=f"frac_{feature}", y="force_y_hat",
+            x=feature, y="force_y_hat",
             color='purple',
             linestyle='--',
             label="Impact on linear model.",
             ax=ax
         )
 
-    ax.set_xticks(np.arange(0.0, 1.01, 0.1))
+    if col_is_fractional:
+        ax.set_xticks(np.arange(0.0, 1.01, 0.1))
+
+    dollar_formatter = FuncFormatter(
+        lambda d, pos: f'\\${d:,.0f}' if d >= 0 else f'(\\${-d:,.0f})'
+    )
 
     if relative:
         ax.yaxis.set_major_formatter(PercentFormatter(1.0, decimals=0))
     else:
-        dollar_formatter = FuncFormatter(
-            lambda d, pos: f'\\${d:,.0f}' if d >= 0 else f'(\\${-d:,.0f})'
-        )
         ax.yaxis.set_major_formatter(dollar_formatter)
 
-    ax.xaxis.set_major_formatter(PercentFormatter(1.0, decimals=0))
+    if col_is_fractional:
+        x_width = 1.0
+        ax.xaxis.set_major_formatter(PercentFormatter(1.0, decimals=0))
+    else:
+        x_width = util.MAX_INCOME
+        ax.xaxis.set_major_formatter(dollar_formatter)
+
     name = Path(output_dir).parent.name.replace('_', ' ')
     ax.set_title(f'Impact of {label} on Median Home Value\n{name}')
     ax.set_xlabel(label)
@@ -292,8 +334,6 @@ def plot_shap_force(
         verticalalignment='bottom',
         transform=ax.transAxes
     )
-    ax.axhline(0, color='black', zorder=1)
-    ax.grid()
 
     if relative:
         if max_force > 0.5:
@@ -307,6 +347,10 @@ def plot_shap_force(
         min_force = (min_force // 10_000) * 10_000 - 20_000
 
     ax.set_ylim(min_force, max_force)
+    ax.set_xlim(-0.05 * x_width, 1.05 * x_width)
+
+    ax.axhline(0, color='black', zorder=1)
+    ax.grid()
 
     for handle in ax.legend().legend_handles:
         handle._sizes = [25]

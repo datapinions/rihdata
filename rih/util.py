@@ -135,7 +135,8 @@ FRAC_VARIABLES = {
 
 # Median houshold income in last 12 months.
 # See https://api.census.gov/data/2021/acs/acs5/groups/B19013.html
-VARIABLE_MEDIAN_INCOME = "B19013_001E"
+GROUP_MEDIAN_INCOME = "B19013"
+VARIABLE_MEDIAN_INCOME = f"{GROUP_MEDIAN_INCOME}_001E"
 
 # Median home value.
 # See https://api.census.gov/data/2021/acs/acs5/groups/B25077.html
