@@ -68,11 +68,11 @@ TOP_N_SHAP_PLOT_DIRS := $(TOP_N_DATA:$(DATA_DIR)/%.geojson=$(SHAP_PLOT_DIR)/%)
 # our default targer `all` builds along with plots.
 RANKED_FILE :=  $(PARAMS_DIR)/ranked_$(N)_$(YEAR)_cbsa.csv
 
-.PHONY: all all_plots shap_plots price_plots data summary params linreg clean clean_plots ranked_file
+.PHONY: all all_plots shap_plots price_plots paper_plots data summary params linreg clean clean_plots ranked_file
 
 all: summary ranked_file all_plots
 
-all_plots: shap_plots price_plots price_feature_plots
+all_plots: shap_plots price_plots price_feature_plots paper_plots
 
 shap_plots: $(TOP_N_SHAP_PLOT_DIRS)
 
@@ -153,3 +153,42 @@ $(SHAP_PLOT_DIR)/%: $(PARAMS_DIR)/%.params.yaml $(DATA_DIR)/%.geojson
 $(PRICE_FEATURE_PLOT_DIR)/%: $(DATA_DIR)/%.geojson
 	mkdir -p $@
 	$(PYTHON) -m rih.featureplot --log $(LOGLEVEL) -v $(YEAR) $(GROUP_HISPANIC_LATINO) -o $@ $(DATA_DIR)/$*.geojson
+
+# Special plots for the paper.
+paper_plots: $(PLOT_DIR)/paper/Miami-Fort_Lauderdale-Pompano_Beach,_FL_Metro_Area/33100/750-15.png \
+    $(PLOT_DIR)/paper/Miami-Fort_Lauderdale-Pompano_Beach,_FL_Metro_Area/33100/750-5.png \
+    $(PLOT_DIR)/paper/Miami-Fort_Lauderdale-Pompano_Beach,_FL_Metro_Area/33100/500-40.png \
+    $(PLOT_DIR)/paper/Miami-Fort_Lauderdale-Pompano_Beach,_FL_Metro_Area/33100/500-5.png \
+    $(PLOT_DIR)/paper/Miami-Fort_Lauderdale-Pompano_Beach,_FL_Metro_Area/33100/500-1.png
+
+$(PLOT_DIR)/paper/Miami-Fort_Lauderdale-Pompano_Beach,_FL_Metro_Area/33100/750-15.png:
+	mkdir -p $(@D)
+	$(PYTHON) -m rih.featureplot --log $(LOGLEVEL) -v $(YEAR) $(GROUP_HISPANIC_LATINO) \
+    --feature frac_B03002_004E --highlight-feature-above 0.15 --emphasize-value-above 750000 \
+    -o $(@D) -F $(@F) $(DATA_DIR)/Miami-Fort_Lauderdale-Pompano_Beach,_FL_Metro_Area/33100.geojson
+
+$(PLOT_DIR)/paper/Miami-Fort_Lauderdale-Pompano_Beach,_FL_Metro_Area/33100/750-5.png:
+	mkdir -p $(@D)
+	$(PYTHON) -m rih.featureplot --log $(LOGLEVEL) -v $(YEAR) $(GROUP_HISPANIC_LATINO) \
+    --feature frac_B03002_004E --highlight-feature-below 0.05 --emphasize-value-above 750000 \
+    -o $(@D) -F $(@F) $(DATA_DIR)/Miami-Fort_Lauderdale-Pompano_Beach,_FL_Metro_Area/33100.geojson
+
+$(PLOT_DIR)/paper/Miami-Fort_Lauderdale-Pompano_Beach,_FL_Metro_Area/33100/500-40.png:
+	mkdir -p $(@D)
+	$(PYTHON) -m rih.featureplot --log $(LOGLEVEL) -v $(YEAR) $(GROUP_HISPANIC_LATINO) \
+    --feature frac_B03002_004E --highlight-feature-above 0.4 --emphasize-value-above 500000 \
+    -o $(@D) -F $(@F) $(DATA_DIR)/Miami-Fort_Lauderdale-Pompano_Beach,_FL_Metro_Area/33100.geojson
+
+$(PLOT_DIR)/paper/Miami-Fort_Lauderdale-Pompano_Beach,_FL_Metro_Area/33100/500-5.png:
+	mkdir -p $(@D)
+	$(PYTHON) -m rih.featureplot --log $(LOGLEVEL) -v $(YEAR) $(GROUP_HISPANIC_LATINO) \
+    --feature frac_B03002_004E --highlight-feature-below 0.05 --emphasize-value-above 500000 \
+    -o $(@D) -F $(@F) $(DATA_DIR)/Miami-Fort_Lauderdale-Pompano_Beach,_FL_Metro_Area/33100.geojson
+
+$(PLOT_DIR)/paper/Miami-Fort_Lauderdale-Pompano_Beach,_FL_Metro_Area/33100/500-1.png:
+	mkdir -p $(@D)
+	$(PYTHON) -m rih.featureplot --log $(LOGLEVEL) -v $(YEAR) $(GROUP_HISPANIC_LATINO) \
+    --feature frac_B03002_004E --highlight-feature-below 0.01 --emphasize-value-above 500000 \
+    -o $(@D) -F $(@F) $(DATA_DIR)/Miami-Fort_Lauderdale-Pompano_Beach,_FL_Metro_Area/33100.geojson
+
+
