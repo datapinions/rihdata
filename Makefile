@@ -5,7 +5,7 @@ LOGLEVEL = WARNING
 
 # The year of U.S. Census ACS data that drives all of
 # our analysis.
-YEAR := 2020
+YEAR := 2021
 
 # We will do our analysis on the top N CBASs. When testing
 # and debugging, it is sometimes useful to override this
@@ -148,12 +148,14 @@ $(PRICE_PLOT_DIR)/%/price-income.png: $(DATA_DIR)/%.geojson
 $(SHAP_PLOT_DIR)/%: $(PARAMS_DIR)/%.params.yaml $(DATA_DIR)/%.geojson
 	mkdir -p $@
 	$(PYTHON) -m rih.shapplot --log $(LOGLEVEL) --background -v $(YEAR) $(GROUP_HISPANIC_LATINO) -p $(PARAMS_DIR)/$*.params.yaml -o $@ $(DATA_DIR)/$*.geojson
+	touch $@
 
 # Produce a series of scatter plots of price vs. the various race and
 # ethnicity features.
 $(PRICE_FEATURE_PLOT_DIR)/%: $(DATA_DIR)/%.geojson
 	mkdir -p $@
 	$(PYTHON) -m rih.featureplot --log $(LOGLEVEL) -v $(YEAR) $(GROUP_HISPANIC_LATINO) -o $@ $(DATA_DIR)/$*.geojson
+	touch $@
 
 # Special plots for the paper.
 paper_plots: $(PLOT_DIR)/paper/Miami-Fort_Lauderdale-Pompano_Beach,_FL_Metro_Area/33100/750-15.png \
