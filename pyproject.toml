@@ -22,7 +22,6 @@ shap = "^0.41.0"
 # works with newer numpy versions we can use it an eliminate this pin.
 numpy = "1.23.2"
 PyYAML = "^6.0"
-tensorflow = "^2.13.0"
 
 [tool.poetry.group.lint.dependencies]
 flake8 = "^5.0.4"
