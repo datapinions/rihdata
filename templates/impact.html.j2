@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+</head>
+
+<body>
+  <div id="titlebar">
+    <h1 id="title">
+      The Impact of Race and Ethnicity on Housing Values
+    </h1>
+  </div>
+
+  <div id="select_cbsa">
+    <p>Please select the area you are interested in</p>
+    <select name="cbsa" id="cbsa">
+      <option value="" disabled="true" selected="true">—</option>
+      {%- for cbsa in top_n %}
+        <option value="{{top_n[cbsa]}}">{{cbsa}}</option>
+      {% endfor %}
+    </select>
+
+    <p>and the value whose impact you want to plot</p>
+    <select name="feature" id="feature">
+        <option value="" disabled="true" selected="true">—</option>
+
+        <option value="Not-Hispanic-or-Latino-American-Indian-and-Alaska-Native-alone.png">
+        Fraction Not Hispanic or Latino American Indian and Alaska Native alone
+        </option>
+        <option value="Not-Hispanic-or-Latino-Asian-alone.png">
+        Fraction Not Hispanic or Latino Asian alone
+        </option>
+        <option value="Not-Hispanic-or-Latino-Black-or-African-American-alone.png">
+        Fraction Not Hispanic or Latino Black or African American alone
+        </option>
+        <option value="Not-Hispanic-or-Latino-Native-Hawaiian-and-Other-Pacific-Islander-alone.png">
+        Fraction Not Hispanic or Latino Native Hawaiian and Other Pacific Islander alone
+        </option>
+        <option value="Not-Hispanic-or-Latino-Some-other-race-alone.png">
+        Fraction Not Hispanic or Latino Some other race alone
+        </option>
+        <option value="Not-Hispanic-or-Latino-Two-or-more-races-Two-races-excluding-Some-other-race,-and-three-or-more-races.png">
+        Fraction Not Hispanic or Latino Two or more races Two races excluding Some other race, and three or more races
+        </option>
+        <option value="Not-Hispanic-or-Latino-Two-or-more-races-Two-races-including-Some-other-race.png">
+        Fraction Not Hispanic or Latino Two or more races Two races including Some other race
+        </option>
+        <option value="Not-Hispanic-or-Latino-White-alone.png">
+        Fraction Not Hispanic or Latino White alone
+        </option>
+        <option value="Hispanic-or-Latino.png">
+        Fraction Hispanic or Latino
+        </option>
+        <option value="Median household income in the past 12 months (in 2021 inflation adjusted dollars).png">
+        Median household income in the past 12 months (in 2021 inflation adjusted dollars)
+        </option>
+    </select>
+
+    <p>
+      <input type="checkbox" id="relative" checked/>
+      <label for="relative">Relative Impact</label>
+    </p>
+
+    <p><button id="ok">OK</button></p>
+
+  </div>
+  <div id="imgdiv">
+  <img id="plot" src="./images/sample.png"></img>
+  </div>
+</body>

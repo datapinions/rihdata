@@ -26,6 +26,4 @@ class LoggingArgumentParser(ArgumentParser):
         logging.basicConfig(level=level)
         self._logger.setLevel(level)
 
-        self._logger.info(f"Input file: {args.input_file}")
-
         return args

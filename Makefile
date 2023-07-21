@@ -28,6 +28,18 @@ PRICE_PLOT_DIR := $(PLOT_DIR)/price-income
 PRICE_FEATURE_PLOT_DIR := $(PLOT_DIR)/price-feature
 SHAP_PLOT_DIR := $(PLOT_DIR)/shap
 
+# Templates and related details for rendering the site.
+HTML_TEMPLATE_DIR := ./templates
+SITE_DIR := $(BUILD_DIR)/site
+IMAGE_SRC_DIR := $(HTML_TEMPLATE_DIR)/images
+SITE_IMAGE_DIR := $(SITE_DIR)/images
+
+HTML_NAMES := impact.html
+SITE_HTML := $(HTML_NAMES:%=$(SITE_DIR)/%)
+HTML_TEMPLATES := $(HTML_NAMES:%.html=$(HTML_TEMPLATE_DIR)/%.html.j2)
+
+SITE_IMAGES := $(SITE_IMAGE_DIR)/sample.png
+
 GROUP_HISPANIC_LATINO = --group-hispanic-latino
 
 # The goal here is to construct a variable listing the top N
@@ -89,6 +101,8 @@ data: $(TOP_N_DATA)
 summary: $(TOP_N_SUMMARY_STATS) $(OVERALL_SUMMARY)
 
 ranked_file: $(RANKED_FILE)
+
+site_html: $(SITE_HTML) $(SITE_IMAGES)
 
 clean: clean_plots
 	rm -rf $(DATA_DIR)
@@ -156,6 +170,16 @@ $(PRICE_FEATURE_PLOT_DIR)/%: $(DATA_DIR)/%.geojson
 	mkdir -p $@
 	$(PYTHON) -m rih.featureplot --log $(LOGLEVEL) -v $(YEAR) $(GROUP_HISPANIC_LATINO) -o $@ $(DATA_DIR)/$*.geojson
 	touch $@
+
+# How to render and HTML template for the site.
+$(SITE_DIR)/%.html: $(HTML_TEMPLATE_DIR)/%.html.j2
+	mkdir -p $(@D)
+	$(PYTHON) -m rih.rendersite --log $(LOGLEVEL) -t $(TOP_N_LIST_FILE) -o $@ $<
+
+$(SITE_IMAGE_DIR)/%.png: $(IMAGE_SRC_DIR)/%.png
+	mkdir -p $(@D)
+	cp $< $@
+
 
 # Special plots for the paper.
 paper_plots: $(PLOT_DIR)/paper/Miami-Fort_Lauderdale-Pompano_Beach,_FL_Metro_Area/33100/750-15.png \
