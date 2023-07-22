@@ -102,7 +102,11 @@ summary: $(TOP_N_SUMMARY_STATS) $(OVERALL_SUMMARY)
 
 ranked_file: $(RANKED_FILE)
 
-site_html: $(SITE_HTML) $(SITE_IMAGES)
+site_html: $(SITE_HTML) $(SITE_IMAGES) $(SITE_PLOTS) $(SITE_IMAGE_DIR)/impact_charts
+
+$(SITE_IMAGE_DIR)/impact_charts: $(TOP_N_SHAP_PLOT_DIRS)
+	-rm -rf $@
+	cp -r $(SHAP_PLOT_DIR) $@
 
 clean: clean_plots
 	rm -rf $(DATA_DIR)
@@ -174,7 +178,7 @@ $(PRICE_FEATURE_PLOT_DIR)/%: $(DATA_DIR)/%.geojson
 # How to render and HTML template for the site.
 $(SITE_DIR)/%.html: $(HTML_TEMPLATE_DIR)/%.html.j2
 	mkdir -p $(@D)
-	$(PYTHON) -m rih.rendersite --log $(LOGLEVEL) -t $(TOP_N_LIST_FILE) -o $@ $<
+	$(PYTHON) -m rih.rendersite --log $(LOGLEVEL)  -v $(YEAR) -t $(TOP_N_LIST_FILE) -o $@ $<
 
 $(SITE_IMAGE_DIR)/%.png: $(IMAGE_SRC_DIR)/%.png
 	mkdir -p $(@D)

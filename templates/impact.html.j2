@@ -11,9 +11,47 @@
     </h1>
   </div>
 
+  <script>
+    var changed = false;
+
+    function onChangeSelect() {
+        changed = true;
+
+        const select_cbsa = document.getElementById("cbsa");
+        const select_feature = document.getElementById("feature");
+        const checkbox_relative = document.getElementById("relative");
+
+        const ok_button = document.getElementById("ok");
+
+        ok_button.disabled = !changed || (select_cbsa.value == "") || (select_feature.value == "");
+    }
+
+    function onOk() {
+        console.log("OK");
+        changed = false;
+
+        const cbsa = document.getElementById("cbsa").value;
+        const feature = document.getElementById("feature").value;
+        const relative = document.getElementById("relative").checked;
+
+        const abs = relative ? "" : "abs-";
+        const img_src = cbsa + abs + feature;
+
+        console.log(cbsa);
+        console.log(feature);
+        console.log(relative);
+        console.log(img_src);
+
+        document.getElementById("plot").src = img_src;
+
+        const ok_button = document.getElementById("ok");
+        ok_button.disabled = true;
+    }
+  </script>
+
   <div id="select_cbsa">
     <p>Please select the area you are interested in</p>
-    <select name="cbsa" id="cbsa">
+    <select name="cbsa" id="cbsa" onchange="onChangeSelect()">
       <option value="" disabled="true" selected="true">—</option>
       {%- for cbsa in top_n %}
         <option value="{{top_n[cbsa]}}">{{cbsa}}</option>
@@ -21,7 +59,7 @@
     </select>
 
     <p>and the value whose impact you want to plot</p>
-    <select name="feature" id="feature">
+    <select name="feature" id="feature" onchange="onChangeSelect()">
         <option value="" disabled="true" selected="true">—</option>
 
         <option value="Not-Hispanic-or-Latino-American-Indian-and-Alaska-Native-alone.png">
@@ -51,17 +89,17 @@
         <option value="Hispanic-or-Latino.png">
         Fraction Hispanic or Latino
         </option>
-        <option value="Median household income in the past 12 months (in 2021 inflation adjusted dollars).png">
-        Median household income in the past 12 months (in 2021 inflation adjusted dollars)
+        <option value="Median-household-income-in-the-past-12-months-(in-{{ vintage }}-inflation-adjusted-dollars).png">
+        Median household income in the past 12 months (in {{ vintage }} inflation adjusted dollars)
         </option>
     </select>
 
     <p>
-      <input type="checkbox" id="relative" checked/>
+      <input type="checkbox" id="relative" checked  onchange="onChangeSelect()"/>
       <label for="relative">Relative Impact</label>
     </p>
 
-    <p><button id="ok">OK</button></p>
+    <p><button id="ok" disabled="true" onclick="onOk()">OK</button></p>
 
   </div>
   <div id="imgdiv">

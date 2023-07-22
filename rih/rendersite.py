@@ -15,6 +15,9 @@ def main():
     parser = LoggingArgumentParser(logger)
 
     parser.add_argument(
+        "-v", "--vintage", required=True, type=int, help="Year to get data."
+    )
+    parser.add_argument(
         "-o", "--output-file", required=True, help="Output file for results."
     )
     parser.add_argument(
@@ -33,12 +36,13 @@ def main():
         top_n_list = f.readlines()
 
     top_n_dict = {
-        cbsa.split('/')[0].replace('_', ' '): f"./images/{cbsa.replace('.geojson', '.png')}"
+        cbsa.split('/')[0].replace('_', ' '): f"./images/impact_charts/{cbsa.replace('.geojson', '/')}"
         for cbsa in sorted(top_n_list)
     }
 
     template_args = dict(
-        top_n=top_n_dict
+        vintage=args.vintage,
+        top_n=top_n_dict,
     )
 
     searchpath = Path(__file__).absolute().parent.parent
