@@ -34,6 +34,10 @@
         ok_button.disabled = !changed || (select_cbsa.value == "") || (select_feature.value == "");
     }
 
+    function unfade(element) {
+        element.style.color = "#333"
+    }
+
     function onOk() {
         changed = false;
 
@@ -46,9 +50,20 @@
 
         document.getElementById("plot").src = img_src;
 
+        const price_cbsa = cbsa.replace("impact_charts", "price_charts");
+        const price_img_src = price_cbsa + feature;
+
+        document.getElementById("plotprice").src = price_img_src;
+
         const ok_button = document.getElementById("ok");
         ok_button.disabled = true;
         ok_button.innerText = ok_button.textContent = 'Update';
+
+        const headings = document.querySelectorAll('#output h1');
+        const paragraphs = document.querySelectorAll('#imgdiv p');
+
+        headings.forEach(unfade);
+        paragraphs.forEach(unfade);
     }
   </script>
 
@@ -113,11 +128,35 @@
     </p>
 
     <p><button id="ok" disabled="true" onclick="onOk()">OK</button></p>
+  </div>
 
-  </div id="output">
-    <h1 id="impact">Impact</h1>
+  <div id="output">
+    <h1>Impact</h1>
     <div id="imgdiv">
+        <p>
+        The impact chart below shows the impact of a single feature in the
+        data the ensemble of 50 models was trained on the prediction is made for each block
+        group. The green dots are ensemble predictions for each block group. Each green dot's
+        <em>x</em> coordinate is the value of the feature for the block group. It's <em>y</em>
+        coordinate is the impact on the ensemble's predicted median home value for that block
+        group.
+        </p><p>
+        For each block group there are also 50 gray dots vertically above or below the green
+        dot. These are the predictions of the 50 models that make up the ensemble, and give
+        an idea of the variance of the ensemble prediciton.
+      </p>
       <img id="plot" src="./images/sample.png"></img>
+    </div>
+    <h1>Input Distribution</h1>
+    <div id="imgdiv">
+        <p>
+        The chart below shows the relationship between a single feature in the
+        data the model was trained and the median home value it was trained to
+        predict. The impact in the chart above is what the model decided the impact
+        of this feature was, taking into account the impact of all other features
+        also. Each dot represents a single block group.
+        </p>
+      <img id="plotprice" src="./images/sample-price.png"></img>
     </div>
   </div>
 </body>

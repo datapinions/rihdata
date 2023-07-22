@@ -62,9 +62,20 @@ select {
     height: 30pt;
 }
 
-h1 {
+#output h1 {
     text-align: center;
     font: 600 28px sans-serif;
     padding: 10px;
     margin: 10px;
+    color: #cccccc;
+}
+
+#imgdiv p {
+    margin-left: auto;
+    margin-right: auto;
+    margin-top: 1.5em;
+    margin-bottom: 1.5em;
+    width: 90%;
+    font: 400 12pt sans-serif;
+    color: #cccccc;
 }

@@ -32,14 +32,11 @@ SHAP_PLOT_DIR := $(PLOT_DIR)/shap
 HTML_TEMPLATE_DIR := ./templates
 STATIC_HTML_DIR := ./static-html
 SITE_DIR := $(BUILD_DIR)/site
-IMAGE_SRC_DIR := $(HTML_TEMPLATE_DIR)/images
 SITE_IMAGE_DIR := $(SITE_DIR)/images
 
 HTML_NAMES := impact.html
 SITE_HTML := $(HTML_NAMES:%=$(SITE_DIR)/%)
 HTML_TEMPLATES := $(HTML_NAMES:%.html=$(HTML_TEMPLATE_DIR)/%.html.j2)
-
-SITE_IMAGES := $(SITE_IMAGE_DIR)/sample.png
 
 GROUP_HISPANIC_LATINO = --group-hispanic-latino
 
@@ -72,7 +69,7 @@ OVERALL_SUMMARY := $(DATA_DIR)/overall-summary-$(YEAR).csv
 # the individual files listed in these variables.
 TOP_N_PARAMS := $(TOP_N_DATA:$(DATA_DIR)/%.geojson=$(PARAMS_DIR)/%.params.yaml)
 TOP_N_LINREG := $(TOP_N_DATA:$(DATA_DIR)/%.geojson=$(PARAMS_DIR)/%.linreg.yaml)
-TOP_N_PRICE_PLOT_DIRS := $(TOP_N_DATA:$(DATA_DIR)/%.geojson=$(PRICE_PLOT_DIR)/%/price-income.png)
+TOP_N_PRICE_PLOTS := $(TOP_N_DATA:$(DATA_DIR)/%.geojson=$(PRICE_PLOT_DIR)/%/price-income.png)
 TOP_N_PRICE_FEATURE_PLOT_DIRS := $(TOP_N_DATA:$(DATA_DIR)/%.geojson=$(PRICE_FEATURE_PLOT_DIR)/%)
 TOP_N_SHAP_PLOT_DIRS := $(TOP_N_DATA:$(DATA_DIR)/%.geojson=$(SHAP_PLOT_DIR)/%)
 
@@ -89,7 +86,7 @@ all_plots: shap_plots price_plots price_feature_plots
 
 shap_plots: $(TOP_N_SHAP_PLOT_DIRS)
 
-price_plots: $(TOP_N_PRICE_PLOT_DIRS)
+price_plots: $(TOP_N_PRICE_PLOTS)
 
 price_feature_plots: $(TOP_N_PRICE_FEATURE_PLOT_DIRS)
 
@@ -103,12 +100,16 @@ summary: $(TOP_N_SUMMARY_STATS) $(OVERALL_SUMMARY)
 
 ranked_file: $(RANKED_FILE)
 
-site_html: $(SITE_HTML) $(SITE_IMAGES) $(SITE_PLOTS) $(SITE_IMAGE_DIR)/impact_charts
+site_html: $(SITE_HTML) $(SITE_PLOTS) $(SITE_IMAGE_DIR)/impact_charts $(SITE_IMAGE_DIR)/price_charts
 	cp -r $(STATIC_HTML_DIR)/* $(SITE_DIR)
 
 $(SITE_IMAGE_DIR)/impact_charts: $(TOP_N_SHAP_PLOT_DIRS)
 	-rm -rf $@
 	cp -r $(SHAP_PLOT_DIR) $@
+
+$(SITE_IMAGE_DIR)/price_charts: $(PRICE_FEATURE_PLOT_DIR)
+	-rm -rf $@
+	cp -r $(PRICE_FEATURE_PLOT_DIR) $@
 
 clean: clean_plots
 	rm -rf $(DATA_DIR)
@@ -181,10 +182,6 @@ $(PRICE_FEATURE_PLOT_DIR)/%: $(DATA_DIR)/%.geojson
 $(SITE_DIR)/%.html: $(HTML_TEMPLATE_DIR)/%.html.j2
 	mkdir -p $(@D)
 	$(PYTHON) -m rih.rendersite --log $(LOGLEVEL)  -v $(YEAR) -t $(TOP_N_LIST_FILE) -o $@ $<
-
-$(SITE_IMAGE_DIR)/%.png: $(IMAGE_SRC_DIR)/%.png
-	mkdir -p $(@D)
-	cp $< $@
 
 
 # Special plots for the paper.
