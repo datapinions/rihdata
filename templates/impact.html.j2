@@ -1,7 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <link rel="stylesheet" href="./css/rih.css">
 
+    <link rel="icon" href="./favicon512.png" sizes="512x512" />
+    <link rel="icon" href="./favicon192.png" sizes="192x192" />
+    <link rel="icon" href="./favicon32.png" sizes="32x32" />
+    <link rel="apple-touch-icon" href="./favicon180.png" />
+    <meta name="msapplication-TileImage" content="./favicon270.png" />
 </head>
 
 <body>
@@ -27,7 +33,6 @@
     }
 
     function onOk() {
-        console.log("OK");
         changed = false;
 
         const cbsa = document.getElementById("cbsa").value;
@@ -37,20 +42,26 @@
         const abs = relative ? "" : "abs-";
         const img_src = cbsa + abs + feature;
 
-        console.log(cbsa);
-        console.log(feature);
-        console.log(relative);
-        console.log(img_src);
-
         document.getElementById("plot").src = img_src;
 
         const ok_button = document.getElementById("ok");
         ok_button.disabled = true;
+        ok_button.innerText = ok_button.textContent = 'Update';
     }
   </script>
 
-  <div id="select_cbsa">
-    <p>Please select the area you are interested in</p>
+  <div id="intro">
+    <p>
+        This page allows you to look at any of hundreds of impact charts.
+        If you would like to learn more about these charts, how they were
+        generated, and how to interpret them, please see
+        <a href="https://datapinions.com/using-interpretable-machine-learning-to-analyze-racial-and-ethnic-disparities-in-home-values/" target="_blank">
+        this blog post</a>.
+    </p>
+  </div>
+
+  <div id="selections">
+    <p>Please select the area you are interested in:</p>
     <select name="cbsa" id="cbsa" onchange="onChangeSelect()">
       <option value="" disabled="true" selected="true">—</option>
       {%- for cbsa in top_n %}
@@ -58,7 +69,7 @@
       {% endfor %}
     </select>
 
-    <p>and the value whose impact you want to plot</p>
+    <p>Please select the feature whose impact you want to plot:</p>
     <select name="feature" id="feature" onchange="onChangeSelect()">
         <option value="" disabled="true" selected="true">—</option>
 
@@ -96,13 +107,15 @@
 
     <p>
       <input type="checkbox" id="relative" checked  onchange="onChangeSelect()"/>
-      <label for="relative">Relative Impact</label>
+      <label for="relative" class="relative-label">Plot impact as a percentage.</label>
     </p>
 
     <p><button id="ok" disabled="true" onclick="onOk()">OK</button></p>
 
-  </div>
-  <div id="imgdiv">
-  <img id="plot" src="./images/sample.png"></img>
+  </div id="output">
+    <h1 id="impact">Impact</h1>
+    <div id="imgdiv">
+      <img id="plot" src="./images/sample.png"></img>
+    </div>
   </div>
 </body>

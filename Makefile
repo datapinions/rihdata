@@ -30,6 +30,7 @@ SHAP_PLOT_DIR := $(PLOT_DIR)/shap
 
 # Templates and related details for rendering the site.
 HTML_TEMPLATE_DIR := ./templates
+STATIC_HTML_DIR := ./static-html
 SITE_DIR := $(BUILD_DIR)/site
 IMAGE_SRC_DIR := $(HTML_TEMPLATE_DIR)/images
 SITE_IMAGE_DIR := $(SITE_DIR)/images
@@ -103,6 +104,7 @@ summary: $(TOP_N_SUMMARY_STATS) $(OVERALL_SUMMARY)
 ranked_file: $(RANKED_FILE)
 
 site_html: $(SITE_HTML) $(SITE_IMAGES) $(SITE_PLOTS) $(SITE_IMAGE_DIR)/impact_charts
+	cp -r $(STATIC_HTML_DIR)/* $(SITE_DIR)
 
 $(SITE_IMAGE_DIR)/impact_charts: $(TOP_N_SHAP_PLOT_DIRS)
 	-rm -rf $@
