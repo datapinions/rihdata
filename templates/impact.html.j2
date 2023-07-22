@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <script defer data-domain="rih.datapinions.com" src="https://plausible.io/js/script.js"></script>
+
     <link rel="stylesheet" href="./css/rih.css">
 
     <link rel="icon" href="./favicon512.png" sizes="512x512" />
@@ -63,7 +65,7 @@
   <div id="selections">
     <p>Please select the area you are interested in:</p>
     <select name="cbsa" id="cbsa" onchange="onChangeSelect()">
-      <option value="" disabled="true" selected="true">—</option>
+      <option value="" disabled="true" selected="true">-</option>
       {%- for cbsa in top_n %}
         <option value="{{top_n[cbsa]}}">{{cbsa}}</option>
       {% endfor %}
@@ -71,7 +73,7 @@
 
     <p>Please select the feature whose impact you want to plot:</p>
     <select name="feature" id="feature" onchange="onChangeSelect()">
-        <option value="" disabled="true" selected="true">—</option>
+        <option value="" disabled="true" selected="true">-</option>
 
         <option value="Not-Hispanic-or-Latino-American-Indian-and-Alaska-Native-alone.png">
         Fraction Not Hispanic or Latino American Indian and Alaska Native alone
