@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <script defer data-domain="rih.datapinions.com" src="https://plausible.io/js/script.js"></script>
+    <script>window.plausible = window.plausible || function() { (window.plausible.q = window.plausible.q || []).push(arguments) }</script>
+
+    <link rel="stylesheet" href="./css/rih.css">
+
+    <link rel="icon" href="./favicon512.png" sizes="512x512" />
+    <link rel="icon" href="./favicon192.png" sizes="192x192" />
+    <link rel="icon" href="./favicon32.png" sizes="32x32" />
+    <link rel="apple-touch-icon" href="./favicon180.png" />
+    <meta name="msapplication-TileImage" content="./favicon270.png" />
+</head>
+
+<body>
+  <div id="titlebar">
+    <h1 id="title">
+      The Impact of Race and Ethnicity on Housing Values
+    </h1>
+  </div>
+
+  <script>
+    var changed = false;
+
+    function onChangeSelect() {
+        changed = true;
+
+        const select_cbsa = document.getElementById("cbsa");
+        const select_feature = document.getElementById("feature");
+        const checkbox_relative = document.getElementById("relative");
+
+        const ok_button = document.getElementById("ok");
+
+        ok_button.disabled = !changed || (select_cbsa.value == "") || (select_feature.value == "");
+    }
+
+    function unfade(element) {
+        element.style.color = "#333"
+    }
+
+    function onUpdate() {
+        changed = false;
+
+        const cbsa = document.getElementById("cbsa").value;
+        const feature = document.getElementById("feature").value;
+        const relative = document.getElementById("relative").checked;
+
+        plausible('Update', {props: {cbsa: cbsa, feature: feature, relative: relative}})
+
+        const abs = relative ? "" : "abs-";
+        const img_src = cbsa + abs + feature;
+
+        document.getElementById("plot").src = img_src;
+
+        const price_cbsa = cbsa.replace("impact_charts", "price_charts");
+        const price_img_src = price_cbsa + feature;
+
+        document.getElementById("plotprice").src = price_img_src;
+
+        const ok_button = document.getElementById("ok");
+        ok_button.disabled = true;
+        ok_button.innerText = ok_button.textContent = 'Update';
+
+        const headings = document.querySelectorAll('#output h1');
+        const paragraphs = document.querySelectorAll('#imgdiv p');
+
+        headings.forEach(unfade);
+        paragraphs.forEach(unfade);
+    }
+  </script>
+
+  <div id="intro">
+    <p>
+        This page allows you to look at any of hundreds of impact charts.
+        If you would like to learn more about these charts, how they were
+        generated, and how to interpret them, please see
+        <a href="https://datapinions.com/using-interpretable-machine-learning-to-analyze-racial-and-ethnic-disparities-in-home-values/" target="_blank">
+        this blog post</a>.
+    </p>
+  </div>
+
+  <div id="selections">
+    <p>Please select the area you are interested in:</p>
+    <select name="cbsa" id="cbsa" onchange="onChangeSelect()">
+      <option value="" disabled="true" selected="true">-</option>
+      {%- for cbsa in top_n %}
+        <option value="{{top_n[cbsa]}}">{{cbsa}}</option>
+      {% endfor %}
+    </select>
+
+    <p>Please select the feature whose impact you want to plot:</p>
+    <select name="feature" id="feature" onchange="onChangeSelect()">
+        <option value="" disabled="true" selected="true">-</option>
+
+        <option value="Not-Hispanic-or-Latino-American-Indian-and-Alaska-Native-alone.png">
+        Fraction Not Hispanic or Latino American Indian and Alaska Native alone
+        </option>
+        <option value="Not-Hispanic-or-Latino-Asian-alone.png">
+        Fraction Not Hispanic or Latino Asian alone
+        </option>
+        <option value="Not-Hispanic-or-Latino-Black-or-African-American-alone.png">
+        Fraction Not Hispanic or Latino Black or African American alone
+        </option>
+        <option value="Not-Hispanic-or-Latino-Native-Hawaiian-and-Other-Pacific-Islander-alone.png">
+        Fraction Not Hispanic or Latino Native Hawaiian and Other Pacific Islander alone
+        </option>
+        <option value="Not-Hispanic-or-Latino-Some-other-race-alone.png">
+        Fraction Not Hispanic or Latino Some other race alone
+        </option>
+        <option value="Not-Hispanic-or-Latino-Two-or-more-races-Two-races-excluding-Some-other-race,-and-three-or-more-races.png">
+        Fraction Not Hispanic or Latino Two or more races Two races excluding Some other race, and three or more races
+        </option>
+        <option value="Not-Hispanic-or-Latino-Two-or-more-races-Two-races-including-Some-other-race.png">
+        Fraction Not Hispanic or Latino Two or more races Two races including Some other race
+        </option>
+        <option value="Not-Hispanic-or-Latino-White-alone.png">
+        Fraction Not Hispanic or Latino White alone
+        </option>
+        <option value="Hispanic-or-Latino.png">
+        Fraction Hispanic or Latino
+        </option>
+        <option value="Median-household-income-in-the-past-12-months-(in-{{ vintage }}-inflation-adjusted-dollars).png">
+        Median household income in the past 12 months (in {{ vintage }} inflation adjusted dollars)
+        </option>
+    </select>
+
+    <p>
+      <input type="checkbox" id="relative" checked  onchange="onChangeSelect()"/>
+      <label for="relative" class="relative-label">Plot impact as a percentage.</label>
+    </p>
+
+    <p><button id="ok" disabled="true" onclick="onUpdate()">OK</button></p>
+  </div>
+
+  <div id="output">
+    <h1>Impact</h1>
+    <div id="imgdiv">
+        <p>
+        The impact chart below shows the impact of a single feature in the
+        data the ensemble of 50 models was trained on the prediction is made for each block
+        group. The green dots are ensemble predictions for each block group. Each green dot's
+        <em>x</em> coordinate is the value of the feature for the block group. Its <em>y</em>
+        coordinate is the impact on the ensemble's predicted median home value for that block
+        group.
+        </p><p>
+        For each block group there are also 50 gray dots vertically above or below the green
+        dot. These are the predictions of the 50 models that make up the ensemble, and give
+        an idea of the variance of the ensemble prediciton.
+      </p>
+      <img id="plot" src="./images/sample.png"></img>
+    </div>
+    <h1>Input Distribution</h1>
+    <div id="imgdiv">
+        <p>
+        The chart below shows the relationship between a single feature in the
+        data the model was trained and the median home value it was trained to
+        predict. The impact in the chart above is what the model decided the impact
+        of this feature was, taking into account the impact of all other features
+        also. Each dot represents a single block group.
+        </p>
+      <img id="plotprice" src="./images/sample-price.png"></img>
+    </div>
+  </div>
+</body>

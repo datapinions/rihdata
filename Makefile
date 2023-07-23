@@ -28,6 +28,16 @@ PRICE_PLOT_DIR := $(PLOT_DIR)/price-income
 PRICE_FEATURE_PLOT_DIR := $(PLOT_DIR)/price-feature
 SHAP_PLOT_DIR := $(PLOT_DIR)/shap
 
+# Templates and related details for rendering the site.
+HTML_TEMPLATE_DIR := ./templates
+STATIC_HTML_DIR := ./static-html
+SITE_DIR := $(BUILD_DIR)/site
+SITE_IMAGE_DIR := $(SITE_DIR)/images
+
+HTML_NAMES := impact.html
+SITE_HTML := $(HTML_NAMES:%=$(SITE_DIR)/%)
+HTML_TEMPLATES := $(HTML_NAMES:%.html=$(HTML_TEMPLATE_DIR)/%.html.j2)
+
 GROUP_HISPANIC_LATINO = --group-hispanic-latino
 
 # The goal here is to construct a variable listing the top N
@@ -59,7 +69,8 @@ OVERALL_SUMMARY := $(DATA_DIR)/overall-summary-$(YEAR).csv
 # the individual files listed in these variables.
 TOP_N_PARAMS := $(TOP_N_DATA:$(DATA_DIR)/%.geojson=$(PARAMS_DIR)/%.params.yaml)
 TOP_N_LINREG := $(TOP_N_DATA:$(DATA_DIR)/%.geojson=$(PARAMS_DIR)/%.linreg.yaml)
-TOP_N_PRICE_PLOT_DIRS := $(TOP_N_DATA:$(DATA_DIR)/%.geojson=$(PRICE_PLOT_DIR)/%/price-income.png)
+PRICE_INCOME_FILE_NAME := Median-household-income-in-the-past-12-months-\(in-$(YEAR)-inflation-adjusted-dollars\).png
+TOP_N_PRICE_PLOTS := $(TOP_N_DATA:$(DATA_DIR)/%.geojson=$(PRICE_PLOT_DIR)/%/$(PRICE_INCOME_FILE_NAME))
 TOP_N_PRICE_FEATURE_PLOT_DIRS := $(TOP_N_DATA:$(DATA_DIR)/%.geojson=$(PRICE_FEATURE_PLOT_DIR)/%)
 TOP_N_SHAP_PLOT_DIRS := $(TOP_N_DATA:$(DATA_DIR)/%.geojson=$(SHAP_PLOT_DIR)/%)
 
@@ -76,7 +87,7 @@ all_plots: shap_plots price_plots price_feature_plots
 
 shap_plots: $(TOP_N_SHAP_PLOT_DIRS)
 
-price_plots: $(TOP_N_PRICE_PLOT_DIRS)
+price_plots: $(TOP_N_PRICE_PLOTS)
 
 price_feature_plots: $(TOP_N_PRICE_FEATURE_PLOT_DIRS)
 
@@ -89,6 +100,19 @@ data: $(TOP_N_DATA)
 summary: $(TOP_N_SUMMARY_STATS) $(OVERALL_SUMMARY)
 
 ranked_file: $(RANKED_FILE)
+
+site_html: $(SITE_HTML) $(SITE_PLOTS) $(SITE_IMAGE_DIR)/impact_charts $(SITE_IMAGE_DIR)/price_charts
+	cp -r $(STATIC_HTML_DIR)/* $(SITE_DIR)
+
+$(SITE_IMAGE_DIR)/impact_charts: $(TOP_N_SHAP_PLOT_DIRS)
+	-rm -rf $@
+	cp -r $(SHAP_PLOT_DIR) $@
+
+$(SITE_IMAGE_DIR)/price_charts: $(PRICE_FEATURE_PLOT_DIR) $(PRICE_PLOT_DIR)
+	-rm -rf $@
+	mkdir -p $@
+	cp -r $(PRICE_FEATURE_PLOT_DIR)/* $@
+	cp -r $(PRICE_PLOT_DIR)/* $@
 
 clean: clean_plots
 	rm -rf $(DATA_DIR)
@@ -135,7 +159,7 @@ $(PARAMS_DIR)/%.linreg.yaml: $(DATA_DIR)/%.geojson
 
 # Produce a plot of price vs. income for a single CBSA. All of
 # the block groups in that CBSA are considered.
-$(PRICE_PLOT_DIR)/%/price-income.png: $(DATA_DIR)/%.geojson
+$(PRICE_PLOT_DIR)/%/$(PRICE_INCOME_FILE_NAME): $(DATA_DIR)/%.geojson
 	mkdir -p ${@D}
 	$(PYTHON) -m rih.priceplot --log $(LOGLEVEL) -v $(YEAR) -o $@ $<
 
@@ -156,6 +180,12 @@ $(PRICE_FEATURE_PLOT_DIR)/%: $(DATA_DIR)/%.geojson
 	mkdir -p $@
 	$(PYTHON) -m rih.featureplot --log $(LOGLEVEL) -v $(YEAR) $(GROUP_HISPANIC_LATINO) -o $@ $(DATA_DIR)/$*.geojson
 	touch $@
+
+# How to render and HTML template for the site.
+$(SITE_DIR)/%.html: $(HTML_TEMPLATE_DIR)/%.html.j2
+	mkdir -p $(@D)
+	$(PYTHON) -m rih.rendersite --log $(LOGLEVEL)  -v $(YEAR) -t $(TOP_N_LIST_FILE) -o $@ $<
+
 
 # Special plots for the paper.
 paper_plots: $(PLOT_DIR)/paper/Miami-Fort_Lauderdale-Pompano_Beach,_FL_Metro_Area/33100/750-15.png \
