@@ -69,7 +69,8 @@ OVERALL_SUMMARY := $(DATA_DIR)/overall-summary-$(YEAR).csv
 # the individual files listed in these variables.
 TOP_N_PARAMS := $(TOP_N_DATA:$(DATA_DIR)/%.geojson=$(PARAMS_DIR)/%.params.yaml)
 TOP_N_LINREG := $(TOP_N_DATA:$(DATA_DIR)/%.geojson=$(PARAMS_DIR)/%.linreg.yaml)
-TOP_N_PRICE_PLOTS := $(TOP_N_DATA:$(DATA_DIR)/%.geojson=$(PRICE_PLOT_DIR)/%/price-income.png)
+PRICE_INCOME_FILE_NAME := Median-household-income-in-the-past-12-months-\(in-$(YEAR)-inflation-adjusted-dollars\).png
+TOP_N_PRICE_PLOTS := $(TOP_N_DATA:$(DATA_DIR)/%.geojson=$(PRICE_PLOT_DIR)/%/$(PRICE_INCOME_FILE_NAME))
 TOP_N_PRICE_FEATURE_PLOT_DIRS := $(TOP_N_DATA:$(DATA_DIR)/%.geojson=$(PRICE_FEATURE_PLOT_DIR)/%)
 TOP_N_SHAP_PLOT_DIRS := $(TOP_N_DATA:$(DATA_DIR)/%.geojson=$(SHAP_PLOT_DIR)/%)
 
@@ -107,9 +108,11 @@ $(SITE_IMAGE_DIR)/impact_charts: $(TOP_N_SHAP_PLOT_DIRS)
 	-rm -rf $@
 	cp -r $(SHAP_PLOT_DIR) $@
 
-$(SITE_IMAGE_DIR)/price_charts: $(PRICE_FEATURE_PLOT_DIR)
+$(SITE_IMAGE_DIR)/price_charts: $(PRICE_FEATURE_PLOT_DIR) $(PRICE_PLOT_DIR)
 	-rm -rf $@
-	cp -r $(PRICE_FEATURE_PLOT_DIR) $@
+	mkdir -p $@
+	cp -r $(PRICE_FEATURE_PLOT_DIR)/* $@
+	cp -r $(PRICE_PLOT_DIR)/* $@
 
 clean: clean_plots
 	rm -rf $(DATA_DIR)
@@ -156,7 +159,7 @@ $(PARAMS_DIR)/%.linreg.yaml: $(DATA_DIR)/%.geojson
 
 # Produce a plot of price vs. income for a single CBSA. All of
 # the block groups in that CBSA are considered.
-$(PRICE_PLOT_DIR)/%/price-income.png: $(DATA_DIR)/%.geojson
+$(PRICE_PLOT_DIR)/%/$(PRICE_INCOME_FILE_NAME): $(DATA_DIR)/%.geojson
 	mkdir -p ${@D}
 	$(PYTHON) -m rih.priceplot --log $(LOGLEVEL) -v $(YEAR) -o $@ $<
 
