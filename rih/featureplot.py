@@ -98,6 +98,7 @@ def main():
 
         label = label.replace("Estimate!!Total:!!", "")
         label = label.replace(":!!", "; ")
+        label = label.replace(":", "")
 
         if do_emphasize or do_highlight:
             color = "lightgray"
