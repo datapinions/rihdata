@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
     <script defer data-domain="rih.datapinions.com" src="https://plausible.io/js/script.js"></script>
+    <script>window.plausible = window.plausible || function() { (window.plausible.q = window.plausible.q || []).push(arguments) }</script>
 
     <link rel="stylesheet" href="./css/rih.css">
 
@@ -38,12 +39,14 @@
         element.style.color = "#333"
     }
 
-    function onOk() {
+    function onUpdate() {
         changed = false;
 
         const cbsa = document.getElementById("cbsa").value;
         const feature = document.getElementById("feature").value;
         const relative = document.getElementById("relative").checked;
+
+        plausible('Update', {props: {cbsa: cbsa, feature: feature, relative: relative}})
 
         const abs = relative ? "" : "abs-";
         const img_src = cbsa + abs + feature;
@@ -127,7 +130,7 @@
       <label for="relative" class="relative-label">Plot impact as a percentage.</label>
     </p>
 
-    <p><button id="ok" disabled="true" onclick="onOk()">OK</button></p>
+    <p><button id="ok" disabled="true" onclick="onUpdate()">OK</button></p>
   </div>
 
   <div id="output">
