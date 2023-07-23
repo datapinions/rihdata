@@ -42,11 +42,17 @@
     function onUpdate() {
         changed = false;
 
-        const cbsa = document.getElementById("cbsa").value;
-        const feature = document.getElementById("feature").value;
+        const cbsa_select = document.getElementById("cbsa");
+        const feature_select = document.getElementById("feature");
+
+        const cbsa = cbsa_select.value;
+        const feature = feature_select.value;
         const relative = document.getElementById("relative").checked;
 
-        plausible('Update', {props: {cbsa: cbsa, feature: feature, relative: relative}})
+        const cbsa_text = cbsa_select.options[cbsa_select.selectedIndex].textContent;
+        const feature_text = feature_select.options[feature_select.selectedIndex].textContent;
+
+        plausible('Update', {props: {cbsa: cbsa_text, feature: feature_text, relative: relative}});
 
         const abs = relative ? "" : "abs-";
         const img_src = cbsa + abs + feature;
