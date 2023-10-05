@@ -26,7 +26,6 @@ PARAMS_DIR := $(BUILD_DIR)/params
 PLOT_DIR := ./plots-$(YEAR)
 PRICE_PLOT_DIR := $(PLOT_DIR)/price-income
 PRICE_FEATURE_PLOT_DIR := $(PLOT_DIR)/price-feature
-SHAP_PLOT_DIR := $(PLOT_DIR)/shap
 
 # Templates and related details for rendering the site.
 HTML_TEMPLATE_DIR := ./templates
@@ -69,23 +68,20 @@ OVERALL_SUMMARY := $(DATA_DIR)/overall-summary-$(YEAR).csv
 # the individual files listed in these variables.
 TOP_N_PARAMS := $(TOP_N_DATA:$(DATA_DIR)/%.geojson=$(PARAMS_DIR)/%.params.yaml)
 TOP_N_LINREG := $(TOP_N_DATA:$(DATA_DIR)/%.geojson=$(PARAMS_DIR)/%.linreg.yaml)
-PRICE_INCOME_FILE_NAME := Median-household-income-in-the-past-12-months-\(in-$(YEAR)-inflation-adjusted-dollars\).png
+PRICE_INCOME_FILE_NAME := Median-household-income-in-the-past-12-months-in-$(YEAR)-inflation-adjusted-dollars.png
 TOP_N_PRICE_PLOTS := $(TOP_N_DATA:$(DATA_DIR)/%.geojson=$(PRICE_PLOT_DIR)/%/$(PRICE_INCOME_FILE_NAME))
 TOP_N_PRICE_FEATURE_PLOT_DIRS := $(TOP_N_DATA:$(DATA_DIR)/%.geojson=$(PRICE_FEATURE_PLOT_DIR)/%)
-TOP_N_SHAP_PLOT_DIRS := $(TOP_N_DATA:$(DATA_DIR)/%.geojson=$(SHAP_PLOT_DIR)/%)
 
 # An output file that ranks the performance of the model
 # on the top N CBSAs. This is the top level output that
 # our default targer `all` builds along with plots.
 RANKED_FILE :=  $(PARAMS_DIR)/ranked_$(N)_$(YEAR)_cbsa.csv
 
-.PHONY: all all_plots shap_plots price_plots paper_plots data summary params linreg clean clean_plots ranked_file
+.PHONY: all all_plots price_plots paper_plots data summary params linreg clean clean_plots dist_clean ranked_file
 
 all: summary ranked_file all_plots
 
-all_plots: shap_plots price_plots price_feature_plots
-
-shap_plots: $(TOP_N_SHAP_PLOT_DIRS)
+all_plots: price_plots price_feature_plots
 
 price_plots: $(TOP_N_PRICE_PLOTS)
 
@@ -104,10 +100,6 @@ ranked_file: $(RANKED_FILE)
 site_html: $(SITE_HTML) $(SITE_PLOTS) $(SITE_IMAGE_DIR)/impact_charts $(SITE_IMAGE_DIR)/price_charts
 	cp -r $(STATIC_HTML_DIR)/* $(SITE_DIR)
 
-$(SITE_IMAGE_DIR)/impact_charts: $(TOP_N_SHAP_PLOT_DIRS)
-	-rm -rf $@
-	cp -r $(SHAP_PLOT_DIR) $@
-
 $(SITE_IMAGE_DIR)/price_charts: $(PRICE_FEATURE_PLOT_DIR) $(PRICE_PLOT_DIR)
 	-rm -rf $@
 	mkdir -p $@
@@ -115,10 +107,13 @@ $(SITE_IMAGE_DIR)/price_charts: $(PRICE_FEATURE_PLOT_DIR) $(PRICE_PLOT_DIR)
 	cp -r $(PRICE_PLOT_DIR)/* $@
 
 clean: clean_plots
-	rm -rf $(DATA_DIR)
+	rm -rf $(DATA_DIR) $(BUILD_DIR)
 
 clean_plots:
 	rm -rf $(PLOT_DIR)
+
+dist_clean:
+	rm -rf ./build-[12]??? ./data-[12]??? ./plots-[12]???
 
 # Build data files, one for each of the top N CBSAs.
 # Note that we use the &: rule syntax here. This was
@@ -162,17 +157,6 @@ $(PARAMS_DIR)/%.linreg.yaml: $(DATA_DIR)/%.geojson
 $(PRICE_PLOT_DIR)/%/$(PRICE_INCOME_FILE_NAME): $(DATA_DIR)/%.geojson
 	mkdir -p ${@D}
 	$(PYTHON) -m rih.priceplot --log $(LOGLEVEL) -v $(YEAR) -o $@ $<
-
-# Produce a series of plots for the influence of each of several
-# features on the output of the model for a single CBSA. All of
-# the block groups in that CBSA are considered. Since the shap analysis
-# is the slow part of this, and it produces values for all features at
-# the same time, we organize the code so that one executable produces
-# plots for all features.
-$(SHAP_PLOT_DIR)/%: $(PARAMS_DIR)/%.params.yaml $(DATA_DIR)/%.geojson
-	mkdir -p $@
-	$(PYTHON) -m rih.shapplot --log $(LOGLEVEL) --background -v $(YEAR) $(GROUP_HISPANIC_LATINO) -p $(PARAMS_DIR)/$*.params.yaml -o $@ $(DATA_DIR)/$*.geojson
-	touch $@
 
 # Produce a series of scatter plots of price vs. the various race and
 # ethnicity features.
