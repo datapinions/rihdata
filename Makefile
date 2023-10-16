@@ -85,15 +85,6 @@ summary: $(TOP_N_SUMMARY_STATS) $(OVERALL_SUMMARY)
 
 ranked_file: $(RANKED_FILE)
 
-site_html: $(SITE_HTML) $(SITE_PLOTS) $(SITE_IMAGE_DIR)/impact_charts $(SITE_IMAGE_DIR)/price_charts
-	cp -r $(STATIC_HTML_DIR)/* $(SITE_DIR)
-
-$(SITE_IMAGE_DIR)/price_charts: $(PRICE_FEATURE_PLOT_DIR) $(PRICE_PLOT_DIR)
-	-rm -rf $@
-	mkdir -p $@
-	cp -r $(PRICE_FEATURE_PLOT_DIR)/* $@
-	cp -r $(PRICE_PLOT_DIR)/* $@
-
 clean: clean_plots
 	rm -rf $(DATA_DIR) $(BUILD_DIR)
 
@@ -131,12 +122,6 @@ $(PRICE_FEATURE_PLOT_DIR)/%: $(DATA_DIR)/%.geojson
 	mkdir -p $@
 	$(PYTHON) -m rih.featureplot --log $(LOGLEVEL) -v $(YEAR) $(GROUP_HISPANIC_LATINO) -o $@ $(DATA_DIR)/$*.geojson
 	touch $@
-
-# How to render an HTML template for the site.
-$(SITE_DIR)/%.html: $(HTML_TEMPLATE_DIR)/%.html.j2
-	mkdir -p $(@D)
-	$(PYTHON) -m rih.rendersite --log $(LOGLEVEL)  -v $(YEAR) -t $(TOP_N_LIST_FILE) -o $@ $<
-
 
 # Special plots for the paper.
 paper_plots: $(PLOT_DIR)/paper/Miami-Fort_Lauderdale-Pompano_Beach,_FL_Metro_Area/33100/750-15.png \
