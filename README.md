@@ -1,12 +1,17 @@
-# rihmodel
+# rihdata
 
 Copyright &copy; 2023 Darren Erik Vengroff
 
 [![Hippocratic License HL3-CL-ECO-EXTR-FFD-LAW-MIL-SV](https://img.shields.io/static/v1?label=Hippocratic%20License&message=HL3-CL-ECO-EXTR-FFD-LAW-MIL-SV&labelColor=5e2751&color=bc8c3d)](https://firstdonoharm.dev/version/3/0/cl-eco-extr-ffd-law-mil-sv.html)
 
-A demonstration of the interpreted ML approach to modeling relationships of variables.
+This project downloads race, income, and housing data
+from the U.S. Census Bureau and saves it locally in
+a format suitable for modeling. It relies on the `censusdis`
+package to do this. 
 
-**This project is in it's early stages. Check back soon for more.**
+The primary consumer of this data is the `rihcharts` project.
+That project generates impact charts using the interpreted 
+ML approach to modeling relationships of variables.
 
 ## Instructions
 
@@ -34,14 +39,17 @@ through, driven by the Makefile, are:
 
 1. Download data from the top 50 largest CBSAs.
 2. Generate features for each CBSA.
-3. Generate exploratory plots of median home price vs. houshold income at the block level.
-4. Fit and hyperparameter tune an XGBoost model 
-   for each CBSA that predicts median housing
-   prices based on median income and racial demographics.
-5. Fit a series of linear models for the same problem.
-6. Generate SHAP values and plots for a large number 
-   of individual models and their ensemble for each CBSA and demographic feature.
+3. Generate exploratory plots of median home price 
+   vs. houshold income at the block level.
 
-How long this will take depends on how fast your 
-machine and your internet connection are. For me,
-from a clean state it takes about an hour to complete.
+For more details and options, please consult the 
+`Makefile`. The most common option to change, which
+can be done via the command line, is to set the `N`
+value for which the top `N` CBSAs data will be downloaded.
+The default is 50, but if you only want data for the 
+top 10, you can run
+
+```shell
+gmake N=10
+```
+

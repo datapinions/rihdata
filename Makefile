@@ -22,7 +22,6 @@ N := 50
 BUILD_DIR := ./build-$(YEAR)
 WORKING_DIR := $(BUILD_DIR)/working
 DATA_DIR := ./data-$(YEAR)
-PARAMS_DIR := $(BUILD_DIR)/params
 PLOT_DIR := ./plots-$(YEAR)
 PRICE_PLOT_DIR := $(PLOT_DIR)/price-income
 PRICE_FEATURE_PLOT_DIR := $(PLOT_DIR)/price-feature
@@ -66,18 +65,12 @@ OVERALL_SUMMARY := $(DATA_DIR)/overall-summary-$(YEAR).csv
 #
 # Pattern-matching rules that come later will be used to generate
 # the individual files listed in these variables.
-TOP_N_PARAMS := $(TOP_N_DATA:$(DATA_DIR)/%.geojson=$(PARAMS_DIR)/%.params.yaml)
 TOP_N_LINREG := $(TOP_N_DATA:$(DATA_DIR)/%.geojson=$(PARAMS_DIR)/%.linreg.yaml)
 PRICE_INCOME_FILE_NAME := Median-household-income-in-the-past-12-months-in-$(YEAR)-inflation-adjusted-dollars.png
 TOP_N_PRICE_PLOTS := $(TOP_N_DATA:$(DATA_DIR)/%.geojson=$(PRICE_PLOT_DIR)/%/$(PRICE_INCOME_FILE_NAME))
 TOP_N_PRICE_FEATURE_PLOT_DIRS := $(TOP_N_DATA:$(DATA_DIR)/%.geojson=$(PRICE_FEATURE_PLOT_DIR)/%)
 
-# An output file that ranks the performance of the model
-# on the top N CBSAs. This is the top level output that
-# our default targer `all` builds along with plots.
-RANKED_FILE :=  $(PARAMS_DIR)/ranked_$(N)_$(YEAR)_cbsa.csv
-
-.PHONY: all all_plots price_plots paper_plots data summary params linreg clean clean_plots dist_clean ranked_file
+.PHONY: all all_plots price_plots paper_plots data summary linreg clean clean_plots dist_clean ranked_file
 
 all: summary ranked_file all_plots
 
@@ -86,8 +79,6 @@ all_plots: price_plots price_feature_plots
 price_plots: $(TOP_N_PRICE_PLOTS)
 
 price_feature_plots: $(TOP_N_PRICE_FEATURE_PLOT_DIRS)
-
-params: $(TOP_N_PARAMS)
 
 linreg: $(TOP_N_LINREG)
 
@@ -130,22 +121,6 @@ $(TOP_N_DATA) &:
 
 $(OVERALL_SUMMARY): $(TOP_N_DATA)
 	$(PYTHON) -m rih.summary --log $(LOGLEVEL) -o $@ $(TOP_N_DATA)
-
-# How to go from a data file for a single CBSA to a parameter file.
-# for the same CBSA.
-$(PARAMS_DIR)/%.params.yaml: $(DATA_DIR)/%.geojson
-	mkdir -p $(@D)
-	$(PYTHON) -m rih.treegress --log $(LOGLEVEL) -v $(YEAR) $(GROUP_HISPANIC_LATINO) -o $@ $<
-
-# How to build the file that ranks the CBSAs by score. This is a
-# summary file that is useful for undestanding which CBSAs fit
-# well and which did not fit as well. It requires
-# a parameter file from each of the top N CBSAs. It also requires
-# a linear regression results file for each of them, since it puts
-# these scores in the output file also.
-$(RANKED_FILE): $(TOP_N_PARAMS) $(TOP_N_LINREG)
-	mkdir -p $(@D)
-	$(PYTHON) -m rih.rankscore -o $@ $(TOP_N_PARAMS)
 
 # This is the rule to run a linear regression for a single CBSA.
 # It reguires the data from that CBSA..

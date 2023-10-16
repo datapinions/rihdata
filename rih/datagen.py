@@ -153,6 +153,14 @@ def main():
 
     output_dir = Path(args.output)
 
+    # Get metadata on the variables we use.
+    gdf_metadata = pd.concat(
+        [
+            ced.variables.all_variables(ACS5, args.vintage, util.GROUP_RACE_ETHNICITY),
+            ced.variables.all_variables(ACS5, args.vintage, util.GROUP_MEDIAN_INCOME),
+        ]
+    )
+
     downloader = Downloader(
         dataset=ACS5,
         vintage=args.vintage,
