@@ -1,18 +1,10 @@
 """Utilities to support notebooks in this project."""
-import os.path
 
-import numpy as np
 import pandas as pd
 import geopandas as gpd
 from censusdis import data as ced
 from censusdis.datasets import ACS5
 from sklearn.model_selection import train_test_split
-import xgboost
-from bayes_opt import BayesianOptimization
-from scipy.ndimage import gaussian_filter1d
-
-import matplotlib.pyplot as plt
-from matplotlib.ticker import FuncFormatter, PercentFormatter
 
 # The top 50 most populated CBSA in 2020
 
@@ -239,145 +231,6 @@ def add_fractional_population(leaves_race_ethnicity, df: pd.DataFrame) -> pd.Dat
         df[f"frac_{leaf}"] = df[leaf] / df[VARIABLE_TOTAL_POP]
 
     return df
-
-
-def xgb_r2_objective(X_train, X_test, y_train, y_test, w_train, w_test):
-    def objective(n_estimators, max_depth):
-        # Truncate to ints as suggested in
-        # https://github.com/fmfn/BayesianOptimization/blob/master/examples/advanced-tour.ipynb
-        xgb = xgboost.XGBRegressor(
-            n_estimators=int(np.round(n_estimators)),
-            max_depth=int(np.round(max_depth)),
-        )
-        xgb = xgb.fit(X=X_train, y=y_train, sample_weight=w_train)
-        score = xgb.score(X=X_test, y=y_test, sample_weight=w_test)
-        return score
-
-    return objective
-
-
-def split_xyw(df, demographic_fraction_vars):
-    X = df[[VARIABLE_MEDIAN_INCOME] + demographic_fraction_vars]
-    y = df[VARIABLE_MEDIAN_VALUE]
-    w = df[VARIABLE_TOTAL_OWNER_OCCUPIED]
-
-    X_train, X_test, y_train, y_test, w_train, w_test = train_test_split(
-        X, y, w, test_size=0.2, random_state=17
-    )
-
-    return X_train, X_test, y_train, y_test, w_train, w_test
-
-
-def hp_optimize(df, demographic_fraction_vars):
-    X_train, X_test, y_train, y_test, w_train, w_test = split_xyw(
-        df, demographic_fraction_vars
-    )
-
-    pbounds = {
-        "n_estimators": (10, 50),
-        "max_depth": (2, 10),
-    }
-
-    optimizer = BayesianOptimization(
-        f=xgb_r2_objective(X_train, X_test, y_train, y_test, w_train, w_test),
-        pbounds=pbounds,
-        verbose=1,
-        random_state=17 * 93,
-        allow_duplicate_points=True,
-    )
-
-    optimizer.maximize(init_points=5, n_iter=50)
-
-    result = optimizer.max
-
-    result["params"]["max_depth"] = int(np.round(result["params"]["max_depth"]))
-    result["params"]["n_estimators"] = int(np.round(result["params"]["n_estimators"]))
-
-    return result
-
-
-def force_plots(cbsa_short_name, shap_values, X_test, output_dir: str):
-    dollar_formatter = FuncFormatter(
-        lambda d, pos: f"\\${d:,.0f}" if d >= 0 else f"(\\${-d:,.0f})"
-    )
-
-    plot_variables = [
-        VARIABLE_NH_WHITE,
-        VARIABLE_NH_BLACK,
-        VARIABLE_NH_ASIAN,
-        VARIABLE_H_WHITE,
-        VARIABLE_H_BLACK,
-        VARIABLE_H_OTHER,
-    ]
-
-    fig, axes = plt.subplots(
-        nrows=len(plot_variables), ncols=1, figsize=(12, 4 * len(plot_variables))
-    )
-
-    fig.tight_layout(pad=5.0)
-
-    max_force = min_force = 0
-
-    # max_force = np.quantile(shap_values[:,1:], 0.997)
-    # min_force = np.quantile(shap_values[:,1:], 0.01)
-
-    # print(max_force)
-
-    for force_variable, ax in zip(plot_variables, axes):
-        force_frac = f"frac_{force_variable}"
-
-        df_force = pd.DataFrame(
-            shap_values,
-            columns=X_test.columns,
-            index=X_test.index,
-        )[[force_frac]]
-
-        df_force = df_force.rename(
-            {force_frac: f"SHAP_{force_variable}"}, axis="columns"
-        )
-
-        df_force[force_frac] = X_test[force_frac]
-
-        df_force = df_force.sort_values(force_frac)
-
-        df_force["smooth"] = gaussian_filter1d(df_force[f"SHAP_{force_variable}"], 5)
-
-        max_force = max([max_force, df_force["smooth"].max()])
-        min_force = min([min_force, df_force["smooth"].min()])
-
-        ax = df_force.plot.scatter(
-            force_frac, f"SHAP_{force_variable}", color="darkgrey", s=10, ax=ax
-        )
-
-        ax = df_force.plot(
-            force_frac, "smooth", color="C1", legend=False, linewidth=3, ax=ax
-        )
-
-        ax.set_xticks(np.arange(0.0, 1.01, 0.1))
-
-        ax.yaxis.set_major_formatter(dollar_formatter)
-        ax.xaxis.set_major_formatter(PercentFormatter(1.0, decimals=0))
-
-        ax.set_title(
-            f"{cbsa_short_name.title()} Area CBSA - Impact of {VAR_NAMES[force_frac].title()} on Median Home Value"
-        )
-        ax.set_xlabel(VAR_NAMES[force_frac])
-        ax.set_ylabel("Impact")
-
-        ax.axhline(0, color="black", zorder=1)
-        ax.grid()
-
-    max_force = (max_force // 10_000) * 10_000 + 20_000
-    min_force = (min_force // 10_000) * 10_000 - 20_000
-
-    for ax in axes:
-        ax.set_ylim(min_force, max_force)
-
-    fig.savefig(
-        os.path.join(output_dir, f"{cbsa_short_name.replace(' ', '-')}_tear_sheet.png")
-    )
-
-    plt.close(fig)
 
 
 def xyw(gdf_cbsa_bg, year, group_lh_together: bool):

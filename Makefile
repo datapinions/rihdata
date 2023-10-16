@@ -65,12 +65,11 @@ OVERALL_SUMMARY := $(DATA_DIR)/overall-summary-$(YEAR).csv
 #
 # Pattern-matching rules that come later will be used to generate
 # the individual files listed in these variables.
-TOP_N_LINREG := $(TOP_N_DATA:$(DATA_DIR)/%.geojson=$(PARAMS_DIR)/%.linreg.yaml)
 PRICE_INCOME_FILE_NAME := Median-household-income-in-the-past-12-months-in-$(YEAR)-inflation-adjusted-dollars.png
 TOP_N_PRICE_PLOTS := $(TOP_N_DATA:$(DATA_DIR)/%.geojson=$(PRICE_PLOT_DIR)/%/$(PRICE_INCOME_FILE_NAME))
 TOP_N_PRICE_FEATURE_PLOT_DIRS := $(TOP_N_DATA:$(DATA_DIR)/%.geojson=$(PRICE_FEATURE_PLOT_DIR)/%)
 
-.PHONY: all all_plots price_plots paper_plots data summary linreg clean clean_plots dist_clean ranked_file
+.PHONY: all all_plots price_plots paper_plots data summary clean clean_plots dist_clean ranked_file
 
 all: summary ranked_file all_plots
 
@@ -79,8 +78,6 @@ all_plots: price_plots price_feature_plots
 price_plots: $(TOP_N_PRICE_PLOTS)
 
 price_feature_plots: $(TOP_N_PRICE_FEATURE_PLOT_DIRS)
-
-linreg: $(TOP_N_LINREG)
 
 data: $(TOP_N_DATA)
 
@@ -122,11 +119,6 @@ $(TOP_N_DATA) &:
 $(OVERALL_SUMMARY): $(TOP_N_DATA)
 	$(PYTHON) -m rih.summary --log $(LOGLEVEL) -o $@ $(TOP_N_DATA)
 
-# This is the rule to run a linear regression for a single CBSA.
-# It reguires the data from that CBSA..
-$(PARAMS_DIR)/%.linreg.yaml: $(DATA_DIR)/%.geojson
-	$(PYTHON) -m rih.linreg --log $(LOGLEVEL) -v $(YEAR) $(GROUP_HISPANIC_LATINO) -o $@ $<
-
 # Produce a plot of price vs. income for a single CBSA. All of
 # the block groups in that CBSA are considered.
 $(PRICE_PLOT_DIR)/%/$(PRICE_INCOME_FILE_NAME): $(DATA_DIR)/%.geojson
@@ -140,7 +132,7 @@ $(PRICE_FEATURE_PLOT_DIR)/%: $(DATA_DIR)/%.geojson
 	$(PYTHON) -m rih.featureplot --log $(LOGLEVEL) -v $(YEAR) $(GROUP_HISPANIC_LATINO) -o $@ $(DATA_DIR)/$*.geojson
 	touch $@
 
-# How to render and HTML template for the site.
+# How to render an HTML template for the site.
 $(SITE_DIR)/%.html: $(HTML_TEMPLATE_DIR)/%.html.j2
 	mkdir -p $(@D)
 	$(PYTHON) -m rih.rendersite --log $(LOGLEVEL)  -v $(YEAR) -t $(TOP_N_LIST_FILE) -o $@ $<
